@@ -34,7 +34,7 @@ DRY_RUN ?= 0
 
 # --- Phony targets ---
 
-.PHONY: check fmt vet test build build-all gate coverage badges readme release clean help
+.PHONY: check fmt vet test build build-all gate coverage badges readme release gh-release clean help
 
 # --- Default ---
 
@@ -49,6 +49,8 @@ help:
 	@echo "                            Dry-run release (print actions, don't execute)"
 	@echo "  make build                Build the inigo CLI binary for the current platform"
 	@echo "  make build-all            Cross-compile for all POSIX platforms"
+	@echo "  make gh-release VERSION=v0.1.0"
+	@echo "                            Create a GitHub release for an existing tag"
 	@echo "  make clean                Remove generated badge artifacts"
 
 # --- Pre-release checks ---
@@ -186,13 +188,15 @@ release: gate
 		exit 1; \
 	fi
 	@# Verify gh can create releases before any irreversible operations
-	@if ! command -v gh >/dev/null 2>&1; then \
-		echo "error: gh (GitHub CLI) is required but not found — install with: brew install gh" >&2; \
-		exit 1; \
-	fi
-	@if ! gh api repos/thesmart/inigo --jq .permissions.push 2>/dev/null | grep -q true; then \
-		echo "error: gh lacks push access to thesmart/inigo — run: gh auth refresh -s repo" >&2; \
-		exit 1; \
+	@if [ "$(DRY_RUN)" != "1" ]; then \
+		if ! command -v gh >/dev/null 2>&1; then \
+			echo "error: gh (GitHub CLI) is required but not found — install with: brew install gh" >&2; \
+			exit 1; \
+		fi; \
+		if ! gh api repos/thesmart/inigo --jq .permissions.push 2>/dev/null | grep -q true; then \
+			echo "error: gh lacks push access to thesmart/inigo — run: gh auth refresh -s repo" >&2; \
+			exit 1; \
+		fi; \
 	fi
 	@# Execute or dry-run
 	@if [ "$(DRY_RUN)" = "1" ]; then \
@@ -216,12 +220,53 @@ release: gate
 		echo "building release binaries..."; \
 		$(MAKE) build-all; \
 		echo "creating GitHub release with binaries..."; \
-		gh release create "$(VERSION)" build/inigo-* --generate-notes; \
+		$(MAKE) gh-release VERSION=$(VERSION); \
 		echo ""; \
 		echo "release: $(VERSION) published"; \
 		echo "  https://pkg.go.dev/github.com/thesmart/inigo@$(VERSION)"; \
 		echo "  https://github.com/thesmart/inigo/releases/tag/$(VERSION)"; \
 	fi
+
+# --- GitHub Release ---
+
+gh-release:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "error: VERSION is required (e.g. make gh-release VERSION=v0.1.0)" >&2; \
+		exit 1; \
+	fi
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "error: gh (GitHub CLI) is required but not found — install with: brew install gh" >&2; \
+		exit 1; \
+	fi
+	@if ! gh api repos/thesmart/inigo --jq .permissions.push 2>/dev/null | grep -q true; then \
+		echo "error: gh lacks push access to thesmart/inigo" >&2; \
+		echo "" >&2; \
+		echo "  try: gh auth refresh -s repo" >&2; \
+		echo "   or: gh auth login" >&2; \
+		echo "" >&2; \
+		echo "  fine-grained tokens need: Contents → Read and write" >&2; \
+		echo "  classic tokens need:      repo scope" >&2; \
+		exit 1; \
+	fi
+	@if ! ls build/inigo-* >/dev/null 2>&1; then \
+		echo "no binaries found in build/ — running build-all..."; \
+		$(MAKE) build-all; \
+	fi
+	@echo "creating GitHub release $(VERSION)..."
+	@gh release create "$(VERSION)" build/inigo-* --generate-notes || { \
+		echo "" >&2; \
+		echo "error: gh release create failed" >&2; \
+		echo "" >&2; \
+		echo "  if the release already exists, delete it first:" >&2; \
+		echo "    gh release delete $(VERSION) --yes" >&2; \
+		echo "" >&2; \
+		echo "  if this is a permissions issue:" >&2; \
+		echo "    gh auth refresh -s repo" >&2; \
+		echo "    or visit: https://github.com/settings/tokens" >&2; \
+		exit 1; \
+	}
+	@echo "gh-release: $(VERSION) published"
+	@echo "  https://github.com/thesmart/inigo/releases/tag/$(VERSION)"
 
 # --- Cleanup ---
 

@@ -69,7 +69,6 @@ resolve_version() {
     return
   fi
 
-  log "fetching latest release..."
   tmpfile=$(mktemp)
   trap 'rm -f "$tmpfile"' EXIT
 
