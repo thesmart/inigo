@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,37 +33,48 @@ type args struct {
 	command []string
 }
 
+// errHelp signals that --help was requested.
+var errHelp = errors.New("help requested")
+
 func main() {
-	a, err := parseArgs(os.Args[1:])
+	os.Exit(run(os.Args[1:], os.Environ()))
+}
+
+func run(argv, environ []string) int {
+	a, err := parseArgs(argv)
+	if err == errHelp {
+		fmt.Print(usageText)
+		return 0
+	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "inigo: %v\n", err)
 		fmt.Fprint(os.Stderr, usageText)
-		os.Exit(2)
+		return 2
 	}
 
 	cfg, err := inigo.Load(a.iniFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "inigo: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	sec := cfg.Section(a.section)
 	if sec == nil {
 		fmt.Fprintf(os.Stderr, "inigo: section %q not found in %s\n", a.section, a.iniFile)
-		os.Exit(1)
+		return 1
 	}
 
-	env := mergeEnv(os.Environ(), buildEnv(sec, a.prefix))
+	env := mergeEnv(environ, buildEnv(sec, a.prefix))
 
 	binary, err := exec.LookPath(a.command[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "inigo: %s: command not found\n", a.command[0])
-		os.Exit(127)
+		return 127
 	}
 
 	err = syscall.Exec(binary, a.command, env)
 	fmt.Fprintf(os.Stderr, "inigo: exec: %v\n", err)
-	os.Exit(126)
+	return 126
 }
 
 func parseArgs(argv []string) (args, error) {
@@ -71,8 +83,7 @@ func parseArgs(argv []string) (args, error) {
 	// Check for --help before requiring "--" separator
 	for _, arg := range argv {
 		if arg == "-h" || arg == "--help" {
-			fmt.Print(usageText)
-			os.Exit(0)
+			return a, errHelp
 		}
 	}
 

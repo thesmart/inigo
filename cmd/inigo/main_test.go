@@ -137,6 +137,69 @@ func TestIntegrationCommandNotFound(t *testing.T) {
 	}
 }
 
+func TestParseArgsHelp(t *testing.T) {
+	tests := []struct {
+		name string
+		argv []string
+	}{
+		{"--help alone", []string{"--help"}},
+		{"-h alone", []string{"-h"}},
+		{"--help with other args", []string{"config.ini", "--help", "mydb", "--", "psql"}},
+		{"-h before separator", []string{"-h", "config.ini", "mydb", "--", "psql"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseArgs(tt.argv)
+			if err != errHelp {
+				t.Errorf("parseArgs(%v) error = %v, want errHelp", tt.argv, err)
+			}
+		})
+	}
+}
+
+func TestRunHelp(t *testing.T) {
+	code := run([]string{"--help"}, nil)
+	if code != 0 {
+		t.Errorf("run(--help) = %d, want 0", code)
+	}
+}
+
+func TestRunBadArgs(t *testing.T) {
+	code := run([]string{}, nil)
+	if code != 2 {
+		t.Errorf("run() = %d, want 2", code)
+	}
+}
+
+func TestRunMissingFile(t *testing.T) {
+	code := run([]string{"/nonexistent/file.ini", "mydb", "--", "env"}, nil)
+	if code != 1 {
+		t.Errorf("run(missing file) = %d, want 1", code)
+	}
+}
+
+func TestRunMissingSection(t *testing.T) {
+	dir := t.TempDir()
+	ini := filepath.Join(dir, "test.ini")
+	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
+
+	code := run([]string{ini, "nosection", "--", "env"}, nil)
+	if code != 1 {
+		t.Errorf("run(missing section) = %d, want 1", code)
+	}
+}
+
+func TestRunCommandNotFound(t *testing.T) {
+	dir := t.TempDir()
+	ini := filepath.Join(dir, "test.ini")
+	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
+
+	code := run([]string{ini, "mydb", "--", "nonexistent_command_xyz_999"}, nil)
+	if code != 127 {
+		t.Errorf("run(command not found) = %d, want 127", code)
+	}
+}
+
 func TestParseArgs(t *testing.T) {
 	tests := []struct {
 		name    string
