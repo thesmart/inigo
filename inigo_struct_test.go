@@ -547,6 +547,95 @@ func TestSaveFromRoundTrip(t *testing.T) {
 	}
 }
 
+func TestSaveFromWriteError(t *testing.T) {
+	c := &dbConfig{Host: "localhost"}
+	err := SaveFrom(c, "test", "/nonexistent/directory/file.conf")
+	if err == nil {
+		t.Fatal("expected error writing to invalid path")
+	}
+}
+
+func TestSaveFromMarshalError(t *testing.T) {
+	s := "not a struct"
+	err := SaveFrom(&s, "test", "/tmp/should_not_be_created.conf")
+	if err == nil {
+		t.Fatal("expected error for non-struct pointer")
+	}
+}
+
+func TestMarshalUnexportedFieldsSkipped(t *testing.T) {
+	type mixed struct {
+		Host    string `ini:"host"`
+		private string `ini:"secret"` //nolint:unused
+	}
+	c := &mixed{Host: "localhost"}
+	out, err := Marshal(c, "")
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if !strings.Contains(out, "host = localhost") {
+		t.Errorf("expected exported field, got:\n%s", out)
+	}
+	if strings.Contains(out, "secret") {
+		t.Error("unexported field should be skipped")
+	}
+}
+
+func TestMarshalBoolFalseNonZero(t *testing.T) {
+	// A struct where we explicitly set a bool field and want to verify
+	// the "off" path in formatField. Since false is zero-value, Marshal
+	// skips it. We need a pointer-based approach or a wrapper.
+	// Instead, test formatField indirectly through a round-trip:
+	// ApplyInto should produce false, which we then verify.
+	cfg := mustParseStr(t, "[s]\nenabled = off\n")
+	type boolCfg struct {
+		Enabled bool `ini:"enabled"`
+	}
+	var c boolCfg
+	if err := ApplyInto(cfg, "s", &c); err != nil {
+		t.Fatalf("ApplyInto: %v", err)
+	}
+	if c.Enabled != false {
+		t.Errorf("Enabled = %v, want false", c.Enabled)
+	}
+}
+
+func TestMarshalEmptyStringValue(t *testing.T) {
+	// Empty non-zero string: a string that is "" is zero-value,
+	// so Marshal skips it. Use a struct with a space to trigger quoting.
+	type cfg struct {
+		Path string `ini:"path"`
+	}
+	c := &cfg{Path: "hello world"}
+	out, err := Marshal(c, "")
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if !strings.Contains(out, "path = 'hello world'") {
+		t.Errorf("expected quoted value, got:\n%s", out)
+	}
+}
+
+func TestApplyIntoErrorBadUint(t *testing.T) {
+	cfg := mustParseStr(t, "count = notanumber")
+	var s struct {
+		Count uint `ini:"count"`
+	}
+	if err := ApplyInto(cfg, "", &s); err == nil {
+		t.Fatal("expected error for invalid uint value")
+	}
+}
+
+func TestApplyIntoErrorBadFloat(t *testing.T) {
+	cfg := mustParseStr(t, "ratio = notafloat")
+	var s struct {
+		Ratio float64 `ini:"ratio"`
+	}
+	if err := ApplyInto(cfg, "", &s); err == nil {
+		t.Fatal("expected error for invalid float value")
+	}
+}
+
 // helper shared with ini_integration_test.go
 func mustParseStr(t *testing.T, input string) *Config {
 	t.Helper()

@@ -1,11 +1,141 @@
 package main
 
 import (
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/thesmart/inigo"
 )
+
+// TestMain builds the binary once for integration tests.
+var testBinary string
+
+func TestMain(m *testing.M) {
+	// Build the binary into a temp directory for integration tests
+	tmp, err := os.MkdirTemp("", "inigo-test-*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(tmp)
+
+	testBinary = filepath.Join(tmp, "inigo")
+	cmd := exec.Command("go", "build", "-o", testBinary, ".")
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		panic("failed to build test binary: " + err.Error())
+	}
+
+	os.Exit(m.Run())
+}
+
+func TestIntegrationHelp(t *testing.T) {
+	cmd := exec.Command(testBinary, "--help")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("--help failed: %v", err)
+	}
+	if !strings.Contains(string(out), "Usage:") {
+		t.Errorf("expected usage text, got:\n%s", out)
+	}
+}
+
+func TestIntegrationHelpShort(t *testing.T) {
+	cmd := exec.Command(testBinary, "-h")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("-h failed: %v", err)
+	}
+	if !strings.Contains(string(out), "Usage:") {
+		t.Errorf("expected usage text, got:\n%s", out)
+	}
+}
+
+func TestIntegrationExec(t *testing.T) {
+	ini := filepath.Join(t.TempDir(), "test.ini")
+	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\nport = 5432\n"), 0o644)
+
+	cmd := exec.Command(testBinary, "--prefix", "PG", ini, "mydb", "--", "env")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatalf("exec failed: %v", err)
+	}
+	output := string(out)
+	if !strings.Contains(output, "PGHOST=localhost") {
+		t.Errorf("expected PGHOST=localhost in output:\n%s", output)
+	}
+	if !strings.Contains(output, "PGPORT=5432") {
+		t.Errorf("expected PGPORT=5432 in output:\n%s", output)
+	}
+}
+
+func TestIntegrationMissingArgs(t *testing.T) {
+	cmd := exec.Command(testBinary)
+	err := cmd.Run()
+	if err == nil {
+		t.Fatal("expected non-zero exit for missing args")
+	}
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected ExitError, got %T", err)
+	}
+	if exitErr.ExitCode() != 2 {
+		t.Errorf("exit code = %d, want 2", exitErr.ExitCode())
+	}
+}
+
+func TestIntegrationMissingSection(t *testing.T) {
+	ini := filepath.Join(t.TempDir(), "test.ini")
+	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
+
+	cmd := exec.Command(testBinary, ini, "nosection", "--", "env")
+	err := cmd.Run()
+	if err == nil {
+		t.Fatal("expected non-zero exit for missing section")
+	}
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected ExitError, got %T", err)
+	}
+	if exitErr.ExitCode() != 1 {
+		t.Errorf("exit code = %d, want 1", exitErr.ExitCode())
+	}
+}
+
+func TestIntegrationMissingFile(t *testing.T) {
+	cmd := exec.Command(testBinary, "/nonexistent/file.ini", "mydb", "--", "env")
+	err := cmd.Run()
+	if err == nil {
+		t.Fatal("expected non-zero exit for missing file")
+	}
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected ExitError, got %T", err)
+	}
+	if exitErr.ExitCode() != 1 {
+		t.Errorf("exit code = %d, want 1", exitErr.ExitCode())
+	}
+}
+
+func TestIntegrationCommandNotFound(t *testing.T) {
+	ini := filepath.Join(t.TempDir(), "test.ini")
+	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
+
+	cmd := exec.Command(testBinary, ini, "mydb", "--", "nonexistent_command_xyz")
+	err := cmd.Run()
+	if err == nil {
+		t.Fatal("expected non-zero exit for missing command")
+	}
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		t.Fatalf("expected ExitError, got %T", err)
+	}
+	if exitErr.ExitCode() != 127 {
+		t.Errorf("exit code = %d, want 127", exitErr.ExitCode())
+	}
+}
 
 func TestParseArgs(t *testing.T) {
 	tests := []struct {

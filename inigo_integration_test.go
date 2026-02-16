@@ -655,6 +655,67 @@ func TestLoadErrorMissingFile(t *testing.T) {
 	}
 }
 
+func TestParseErrorIncludeDirectives(t *testing.T) {
+	tests := []struct {
+		name string
+		line string
+	}{
+		{"include without baseDir", "include 'file.conf'"},
+		{"include_dir without baseDir", "include_dir '/etc'"},
+		{"include_if_exists without baseDir", "include_if_exists 'file.conf'"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Parse() provides no baseDir, so include directives should fail
+			_, err := Parse(strings.NewReader(tt.line))
+			if err == nil {
+				t.Fatal("expected error for include without base directory")
+			}
+			if !strings.Contains(err.Error(), "cannot resolve paths") {
+				t.Errorf("error = %q, expected to mention 'cannot resolve paths'", err.Error())
+			}
+		})
+	}
+}
+
+func TestLoadIncludeDirReadError(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "base.conf", `include_dir '/nonexistent/directory'`)
+
+	_, err := Load(filepath.Join(dir, "base.conf"))
+	if err == nil {
+		t.Fatal("expected error for non-existent include_dir")
+	}
+	if !strings.Contains(err.Error(), "failed to read directory") {
+		t.Errorf("error = %q, expected to mention 'failed to read directory'", err.Error())
+	}
+}
+
+func TestLoadIncludeDirFileError(t *testing.T) {
+	dir := t.TempDir()
+	// Create a .conf file that itself contains a parse error
+	writeTestFile(t, dir, "base.conf", `include_dir 'sub'`)
+	subdir := filepath.Join(dir, "sub")
+	os.Mkdir(subdir, 0o755)
+	writeTestFile(t, subdir, "bad.conf", `[`)
+
+	_, err := Load(filepath.Join(dir, "base.conf"))
+	if err == nil {
+		t.Fatal("expected error from included file with parse error")
+	}
+}
+
+func TestLoadIncludeBadPath(t *testing.T) {
+	dir := t.TempDir()
+	// include with unterminated quoted path
+	writeTestFile(t, dir, "base.conf", `include 'unterminated`)
+
+	_, err := Load(filepath.Join(dir, "base.conf"))
+	if err == nil {
+		t.Fatal("expected error for unterminated include path")
+	}
+}
+
 func writeTestFile(t *testing.T, dir, name, content string) {
 	t.Helper()
 	err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644)
