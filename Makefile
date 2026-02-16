@@ -185,6 +185,15 @@ release: gate
 		echo "error: tag $(VERSION) already exists" >&2; \
 		exit 1; \
 	fi
+	@# Verify gh is installed and authenticated before any irreversible operations
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "error: gh (GitHub CLI) is required but not found — install with: brew install gh" >&2; \
+		exit 1; \
+	fi
+	@if ! gh auth status >/dev/null 2>&1; then \
+		echo "error: gh is not authenticated — run: gh auth login" >&2; \
+		exit 1; \
+	fi
 	@# Execute or dry-run
 	@if [ "$(DRY_RUN)" = "1" ]; then \
 		echo "release: dry-run for $(VERSION)"; \
