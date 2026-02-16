@@ -34,7 +34,7 @@ DRY_RUN ?= 0
 
 # --- Phony targets ---
 
-.PHONY: check fmt vet test gate coverage badges readme release clean help
+.PHONY: check fmt vet test build build-all gate coverage badges readme release clean help
 
 # --- Default ---
 
@@ -47,6 +47,8 @@ help:
 	@echo "                            Tag and push a release"
 	@echo "  make release VERSION=v0.1.0 DRY_RUN=1"
 	@echo "                            Dry-run release (print actions, don't execute)"
+	@echo "  make build                Build the inigo CLI binary for the current platform"
+	@echo "  make build-all            Cross-compile for all POSIX platforms"
 	@echo "  make clean                Remove generated badge artifacts"
 
 # --- Pre-release checks ---
@@ -61,6 +63,21 @@ vet:
 
 test:
 	go test -v ./...
+
+build:
+	go build -o build/inigo ./cmd/inigo
+
+PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64
+
+build-all:
+	@for platform in $(PLATFORMS); do \
+		os=$$(echo "$$platform" | cut -d/ -f1); \
+		arch=$$(echo "$$platform" | cut -d/ -f2); \
+		output="build/inigo-$${os}-$${arch}"; \
+		echo "building $${output}..."; \
+		GOOS=$${os} GOARCH=$${arch} go build -o "$${output}" ./cmd/inigo || exit 1; \
+	done
+	@echo "build-all: complete"
 
 # --- Gating ---
 
@@ -175,6 +192,8 @@ release: gate
 		echo "  would run: git tag $(VERSION)"; \
 		echo "  would run: git push origin $(VERSION)"; \
 		echo "  would run: curl https://proxy.golang.org/github.com/thesmart/inigo/@v/$(VERSION).info"; \
+		echo "  would run: make build-all"; \
+		echo "  would run: gh release create $(VERSION) build/inigo-* --generate-notes"; \
 	else \
 		echo "pushing to origin..."; \
 		git push origin main; \
@@ -185,8 +204,14 @@ release: gate
 		echo "triggering pkg.go.dev indexing..."; \
 		curl -sS "https://proxy.golang.org/github.com/thesmart/inigo/@v/$(VERSION).info"; \
 		echo ""; \
+		echo "building release binaries..."; \
+		$(MAKE) build-all; \
+		echo "creating GitHub release with binaries..."; \
+		gh release create "$(VERSION)" build/inigo-* --generate-notes; \
+		echo ""; \
 		echo "release: $(VERSION) published"; \
 		echo "  https://pkg.go.dev/github.com/thesmart/inigo@$(VERSION)"; \
+		echo "  https://github.com/thesmart/inigo/releases/tag/$(VERSION)"; \
 	fi
 
 # --- Cleanup ---
@@ -194,3 +219,4 @@ release: gate
 clean:
 	rm -f $(BADGES_DIR)/*.svg
 	rm -f /tmp/inigo-coverage-pct.txt
+	rm -rf build/
