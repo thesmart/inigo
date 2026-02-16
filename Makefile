@@ -145,24 +145,22 @@ release: gate
 		echo "error: VERSION must match vMAJOR.MINOR.PATCH (e.g. v0.1.0)" >&2; \
 		exit 1; \
 	}
-	@# Check for clean working tree
-	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "error: working tree is not clean — commit or stash changes first" >&2; \
-		git status --short >&2; \
+	@# Auto-commit gate artifacts (badges, README); fail on other dirty files
+	@dirty=$$(git status --porcelain | grep -v ' badges/' | grep -v ' README.md$$'); \
+	if [ -n "$${dirty}" ]; then \
+		echo "error: working tree has unexpected changes — commit or stash first" >&2; \
+		echo "$${dirty}" >&2; \
 		exit 1; \
+	fi
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "committing gate artifacts for $(VERSION)..."; \
+		git add $(BADGES_DIR) $(README); \
+		git commit -m "release $(VERSION)"; \
 	fi
 	@# Check that we're on main
 	@branch=$$(git rev-parse --abbrev-ref HEAD); \
 	if [ "$${branch}" != "main" ]; then \
 		echo "error: releases must be from the main branch (currently on $${branch})" >&2; \
-		exit 1; \
-	fi
-	@# Check remote is up to date
-	@git fetch origin main --quiet 2>/dev/null; \
-	local_sha=$$(git rev-parse HEAD); \
-	remote_sha=$$(git rev-parse origin/main 2>/dev/null || echo "none"); \
-	if [ "$${local_sha}" != "$${remote_sha}" ]; then \
-		echo "error: local main and origin/main have diverged — push or pull first" >&2; \
 		exit 1; \
 	fi
 	@# Check tag doesn't already exist
@@ -173,10 +171,13 @@ release: gate
 	@# Execute or dry-run
 	@if [ "$(DRY_RUN)" = "1" ]; then \
 		echo "release: dry-run for $(VERSION)"; \
+		echo "  would run: git push origin main"; \
 		echo "  would run: git tag $(VERSION)"; \
 		echo "  would run: git push origin $(VERSION)"; \
 		echo "  would run: curl https://proxy.golang.org/github.com/thesmart/inigo/@v/$(VERSION).info"; \
 	else \
+		echo "pushing to origin..."; \
+		git push origin main; \
 		echo "tagging $(VERSION)..."; \
 		git tag "$(VERSION)"; \
 		echo "pushing tag to origin..."; \
