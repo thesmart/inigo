@@ -2,7 +2,7 @@
 # ghrepo.sh — Print the GitHub owner/repo from the git remote to stdout.
 #
 # Parses the "origin" remote URL (or --remote) and extracts the
-# owner/repo pair (e.g. "thesmart/inigo").
+# owner/repo pair (e.g. "torvalds/linux").
 #
 # Usage:
 #   ./ghrepo.sh [flags]
