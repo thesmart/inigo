@@ -1,15 +1,21 @@
 # getoptions
 
-**getoptions** is a new option parser and generator written in POSIX-compliant shell script.
+**getoptions** is an options parser written in POSIX-compliant shell script.
 
-DO NOT read nor edit [`./getoptions.sh`](./getoptions.sh).
+DO NOT read nor edit [`./getoptions.sh`](./getoptions.sh), that would waste context.
 
 ## Usage Example
 
 ```sh
 #!/bin/sh
+set -eu
 
-VERSION="0.1"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Load getoptions library
+eval "$(sh "${SCRIPT_DIR}/getoptions.sh" -)"
+
+VERSION="0.1.0"
 
 parser_definition() {
   setup   REST help:usage -- "Usage: example.sh [options]... [arguments]..." ''
@@ -55,4 +61,4 @@ Options:
 
 ---
 
-See [REFERENCE.md](./REFERENCE.md) only if you need more documentation.
+See [getoptions.md](../../reference/getoptions.md) if and only if you need more documentation.

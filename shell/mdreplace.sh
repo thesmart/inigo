@@ -12,7 +12,7 @@
 #   ./mdreplace.sh --tag badges --source README.md --content badges.md --output out.md
 #
 # If --output is omitted, the result is printed to stdout.
-# If deno is available, the markdown is formatted with deno fmt before output.
+# If prettier is available (via npx), the markdown is formatted before output.
 
 set +x
 
@@ -36,7 +36,7 @@ parser_definition() {
     'Only the first matching tag pair is replaced.' \
     '' \
     'If --output is omitted, the result is printed to stdout.' \
-    'If deno is available, deno fmt is run on the result before output.' \
+    'If prettier is available (via npx) it will run on the result before output.' \
     '' \
     'Example:' \
     "  $0 --tag badges --source README.md --content badges.md" \
@@ -167,31 +167,26 @@ $(echo "${source_text}" | tail -n "+${end_line}")"
 
 # --- Output ---
 
+# Write result to a temp file for formatting.
+_tmpout="$(mktemp).md"
+trap 'rm -f "${_tmplines}" "${_tmpout}"' EXIT
+echo "${result}" > "${_tmpout}"
+
+# Format with prettier if available.
+_prettierrc="${SCRIPT_DIR}/../.prettierrc.json"
+if command -v npx >/dev/null 2>&1 && [ -f "${_prettierrc}" ]; then
+  NO_COLOR=1 npx -y prettier --write --log-level silent --parser markdown --config "${_prettierrc}" "${_tmpout}" >/dev/null 2>&1
+fi
+
+# Output the result.
 if [ -n "${OUTPUT}" ]; then
-  # Write to output file.
-  echo "${result}" > "${OUTPUT}" || {
+  mv "${_tmpout}" "${OUTPUT}" || {
     echo "error: failed to write to output file: ${OUTPUT}" >&2
     exit 1
   }
-
-  # Format with deno if available.
-  if command -v deno >/dev/null 2>&1; then
-    deno fmt --ext md --config "${SCRIPT_DIR}/deno.json" "${OUTPUT}" 2>/dev/null
-  fi
-
   echo "replaced tag '${TAG}' in ${SOURCE} -> ${OUTPUT}" >&2
 else
-  # Format with deno if available (use a temp file).
-  if command -v deno >/dev/null 2>&1; then
-    _tmpout="$(mktemp)"
-    # Update trap to clean up both temp files.
-    trap 'rm -f "${_tmplines}" "${_tmpout}"' EXIT
-    echo "${result}" > "${_tmpout}"
-    deno fmt --ext md --config "${SCRIPT_DIR}/deno.json" "${_tmpout}" 2>/dev/null
-    cat "${_tmpout}"
-  else
-    echo "${result}"
-  fi
+  cat "${_tmpout}"
 fi
 
 exit 0

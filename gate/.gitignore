@@ -1,5 +1,2 @@
-*.DS_Store
-Thumbs.db
-*.profile
-*.lh
-*.env
+# Generated gate artifacts
+coverage.profile

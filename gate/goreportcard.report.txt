@@ -1,0 +1,14 @@
+2026/03/05 07:28:02 ERROR: (ineffassign) exec: "gometalinter": executable file not found in $PATH
+2026/03/05 07:28:02 ERROR: (gofmt) exec: "gometalinter": executable file not found in $PATH
+2026/03/05 07:28:02 ERROR: (go_vet) exec: "gometalinter": executable file not found in $PATH
+2026/03/05 07:28:02 ERROR: (misspell) exec: "gometalinter": executable file not found in $PATH
+2026/03/05 07:28:02 ERROR: (gocyclo) exec: "gometalinter": executable file not found in $PATH
+Grade ............. F 5.9%
+Files .................. 9
+Issues ................. 0
+gofmt ................. 0%
+go_vet ................ 0%
+ineffassign ........... 0%
+gocyclo ............... 0%
+license ............. 100%
+misspell .............. 0%

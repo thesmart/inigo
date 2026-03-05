@@ -51,6 +51,11 @@ eval "$(getoptions parser_definition parse "$0")"
 parse "$@"
 eval "set -- $REST"
 
+# --- Resolve project identity ---
+
+MODULE_PATH=$(sh "${SCRIPT_DIR}/gomod.sh") || exit 1
+GH_REPO=$(sh "${SCRIPT_DIR}/ghrepo.sh") || exit 1
+
 # --- Validation ---
 
 _err=0
@@ -94,9 +99,9 @@ _g="${REPORT_GRADE}"
 _l="${LICENSE}"
 
 _md="
-[![Go Reference](${_d}/go-reference-badge.svg)](https://pkg.go.dev/github.com/thesmart/inigo)
-[![Coverage ${_p}%](${_d}/coverage-badge.svg)](https://github.com/thesmart/inigo)
-[![Go Report ${_g}](${_d}/go-report-badge.svg)](https://goreportcard.com/report/github.com/thesmart/inigo)
+[![Go Reference](${_d}/go-reference-badge.svg)](https://pkg.go.dev/${MODULE_PATH})
+[![Coverage ${_p}%](${_d}/coverage-badge.svg)](https://github.com/${GH_REPO})
+[![Go Report ${_g}](${_d}/go-report-badge.svg)](https://goreportcard.com/report/${MODULE_PATH})
 [![License ${_l}](${_d}/license-badge.svg)](./LICENSE)
 "
 

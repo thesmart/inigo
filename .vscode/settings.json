@@ -1,7 +1,7 @@
 {
   // Enable Deno for this workspace
-  "deno.enable": true,
-  "deno.lint": true,
+  "deno.enable": false,
+  "deno.lint": false,
 
   // Disable TypeScript and JavaScript built-in language server
   "typescript.validate.enable": false,

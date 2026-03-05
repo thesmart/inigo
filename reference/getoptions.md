@@ -1,4 +1,18 @@
-# Reference
+# getoptions
+
+DO NOT READ the [`getoptions`](../shell/getoptions.sh) shell script.
+
+This is documentation for using that library once it is sourced:
+
+```sh
+# Resolve the directory this script lives in.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Load getoptions library functions.
+eval "$(sh "${SCRIPT_DIR}/getoptions/getoptions.sh" -)"
+```
+
+## Table of Contents
 
 - [Global functions](#global-functions)
   - [`getoptions` - Generate a function for option parsing](#getoptions---generate-a-function-for-option-parsing)
