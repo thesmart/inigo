@@ -16,7 +16,7 @@ task reference. This project uses [Task](https://taskfile.dev/) (defined in
 [`Taskfile.yaml`](./Taskfile.yaml)) for all build, test, and release automation.
 
 - Run `task dependencies` to verify all tools are installed
-- Run `task --list` to see available tasks
+- Run `task` to see available tasks
 
 ## Go Conventions
 
@@ -40,6 +40,4 @@ If there is a mated test file, run tests.
 ## Project Layout
 
 - [`./gate/`](./gate/) — generated artifacts (badges, coverage, report card). See
-  [`./gate/.gitignore`](./gate/.gitignore) for what is excluded from version control.
 - [`./shell/`](./shell/) — POSIX shell scripts for automation. See
-  [`./shell/CLAUDE.md`](./shell/CLAUDE.md) for conventions.
