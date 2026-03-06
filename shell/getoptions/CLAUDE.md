@@ -1,8 +1,10 @@
 # getoptions
 
-**getoptions** is an options parser written in POSIX-compliant shell script.
+`./getoptions.sh` is an options parser written in POSIX-compliant shell script.
 
-DO NOT read nor edit [`./getoptions.sh`](./getoptions.sh), that would waste context.
+- **NEVER** read [`./getoptions.sh`](./getoptions.sh), that would waste context.
+- **NEVER** modify [`./getoptions.sh`](./getoptions.sh)
+- This file explains how to use it.
 
 ## Usage Example
 
@@ -58,7 +60,3 @@ Options:
       --help
       --version
 ```
-
----
-
-See [getoptions.md](../../reference/getoptions.md) if and only if you need more documentation.

@@ -13,8 +13,8 @@ func TestStripComment(t *testing.T) {
 		{"no comment", "key = value", "key = value"},
 		{"comment only", "# full line comment", ""},
 		{"trailing comment", "key = value # comment", "key = value "},
-		{"hash in single quotes", "key = 'val#ue'", "key = 'val#ue'"},
-		{"hash in quotes then comment", "key = 'val#ue' # comment", "key = 'val#ue' "},
+		{"hash in single quotes", "key = 'val#keep'", "key = 'val#keep'"},
+		{"hash in quotes then comment", "key = 'val#keep' # comment", "key = 'val#keep' "},
 		{"doubled quote escape", "key = 'it''s' # comment", "key = 'it''s' "},
 		{"backslash quote escape", `key = 'it\'s' # comment`, `key = 'it\'s' `},
 		{"empty string", "", ""},
@@ -138,7 +138,7 @@ func TestParseQuotedValue(t *testing.T) {
 		{"backslash escape", `'it\'s'`, "it's", false},
 		{"multiple escapes", "'a''b''c'", "a'b'c", false},
 		{"unterminated", "'hello", "", true},
-		{"hash inside", "'val#ue'", "val#ue", false},
+		{"hash inside", "'val#keep'", "val#keep", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
