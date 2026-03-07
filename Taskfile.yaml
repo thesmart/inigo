@@ -1,371 +1,384 @@
 version: '3'
 
 vars:
-  GATE_DIR: ./gate
-  SHELL_DIR: ./shell
-  README: ./README.md
-  LICENSE_ID: MIT
+    GATE_DIR: ./gate
+    SHELL_DIR: ./shell
+    README: ./README.md
+    LICENSE_ID: MIT
 
 tasks:
-  # ---------------------------------------------------------------------------
-  # Default
-  # ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
+    # Default
+    # ---------------------------------------------------------------------------
 
-  default:
-    desc: List available tasks
-    silent: true
-    cmds:
-      - echo "Run 'task --list' to see all available tasks, or 'task help' for usage."
-      - echo ""
-      - task --list
+    default:
+        desc: List available tasks
+        silent: true
+        cmds:
+            - echo "Run 'task --list' to see all available tasks, or 'task help' for usage."
+            - echo ""
+            - task --list
 
-  # ---------------------------------------------------------------------------
-  # Dependency checks (internal)
-  # ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
+    # Dependency checks (internal)
+    # ---------------------------------------------------------------------------
 
-  dependencies:go:
-    internal: true
-    silent: true
-    preconditions:
-      - sh: command -v go >/dev/null 2>&1
-        msg: "go not found. Install Go: https://go.dev/dl/"
-    cmds:
-      - echo "go — Go compiler and toolchain (build, test, vet, fmt)"
+    dependencies:go:
+        internal: true
+        silent: true
+        preconditions:
+            - sh: command -v go >/dev/null 2>&1
+              msg: 'go not found. Install Go: https://go.dev/dl/'
+        cmds:
+            - echo "go — Go compiler and toolchain (build, test, vet, fmt)"
 
-  dependencies:curl:
-    internal: true
-    silent: true
-    preconditions:
-      - sh: command -v curl >/dev/null 2>&1
-        msg: "curl not found. Install curl: https://curl.se/download.html"
-    cmds:
-      - echo "curl — HTTP client (badge SVG downloads)"
+    dependencies:curl:
+        internal: true
+        silent: true
+        preconditions:
+            - sh: command -v curl >/dev/null 2>&1
+              msg: 'curl not found. Install curl: https://curl.se/download.html'
+        cmds:
+            - echo "curl — HTTP client (badge SVG downloads)"
 
-  dependencies:npx:
-    internal: true
-    silent: true
-    preconditions:
-      - sh: command -v npx >/dev/null 2>&1
-        msg: "npx not found. Install Node.js: https://nodejs.org/en/download"
-    cmds:
-      - echo "npx — Node.js package runner (prettier formatting)"
+    dependencies:npx:
+        internal: true
+        silent: true
+        preconditions:
+            - sh: command -v npx >/dev/null 2>&1
+              msg: 'npx not found. Install Node.js: https://nodejs.org/en/download'
+        cmds:
+            - echo "npx — Node.js package runner (prettier formatting)"
 
-  dependencies:typos:
-    internal: true
-    silent: true
-    preconditions:
-      - sh: command -v typos >/dev/null 2>&1
-        msg: "typos not found. Install typos-cli: https://crates.io/crates/typos-cli"
-    cmds:
-      - echo "typos — spell checker (source code typo detection)"
+    dependencies:typos:
+        internal: true
+        silent: true
+        preconditions:
+            - sh: command -v typos >/dev/null 2>&1
+              msg: 'typos not found. Install typos-cli: https://crates.io/crates/typos-cli'
+        cmds:
+            - echo "typos — spell checker (source code typo detection)"
 
-  dependencies:git:
-    internal: true
-    silent: true
-    preconditions:
-      - sh: command -v git >/dev/null 2>&1
-        msg: "git not found. Install Git: https://git-scm.com/downloads"
-    cmds:
-      - echo "git — version control (commits, tags, releases)"
+    dependencies:git:
+        internal: true
+        silent: true
+        preconditions:
+            - sh: command -v git >/dev/null 2>&1
+              msg: 'git not found. Install Git: https://git-scm.com/downloads'
+        cmds:
+            - echo "git — version control (commits, tags, releases)"
 
-  dependencies:gh:
-    internal: true
-    silent: true
-    preconditions:
-      - sh: command -v gh >/dev/null 2>&1
-        msg: "gh (GitHub CLI) not found. Install from: https://cli.github.com"
-    cmds:
-      - echo "gh — GitHub CLI (releases, PRs)"
+    dependencies:gh:
+        internal: true
+        silent: true
+        preconditions:
+            - sh: command -v gh >/dev/null 2>&1
+              msg: 'gh (GitHub CLI) not found. Install from: https://cli.github.com'
+        cmds:
+            - echo "gh — GitHub CLI (releases, PRs)"
 
-  dependencies:goreportcard:
-    internal: true
-    silent: true
-    preconditions:
-      - sh: command -v goreportcard-cli >/dev/null 2>&1 || go tool -n goreportcard-cli >/dev/null 2>&1
-        msg: "goreportcard-cli not found. Install from: https://github.com/gojp/goreportcard"
-    cmds:
-      - echo "goreportcard-cli — Go code quality analysis (grade reporting)"
+    dependencies:goreportcard:
+        internal: true
+        silent: true
+        preconditions:
+            - sh: go tool -n goreportcard-cli >/dev/null 2>&1
+              msg: 'goreportcard-cli not found. Install from: https://github.com/gojp/goreportcard'
+        cmds:
+            - echo "goreportcard-cli — Go code quality analysis (grade reporting)"
 
-  dependencies:
-    desc: Check that all tool dependencies are installed
-    deps:
-      - dependencies:go
-      - dependencies:git
-      - dependencies:gh
-      - dependencies:curl
-      - dependencies:npx
-      - dependencies:typos
-      - dependencies:goreportcard
-    cmds:
-      - echo "all dependencies satisfied"
+    dependencies:
+        desc: Check that all tool dependencies are installed
+        deps:
+            - dependencies:go
+            - dependencies:git
+            - dependencies:gh
+            - dependencies:curl
+            - dependencies:npx
+            - dependencies:typos
+            - dependencies:goreportcard
+        cmds:
+            - echo "all dependencies satisfied"
 
-  # ---------------------------------------------------------------------------
-  # Tidy & Format
-  # ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
+    # Tidy & Format
+    # ---------------------------------------------------------------------------
 
-  tidy:
-    desc: Run go mod tidy to sync dependencies
-    deps: [dependencies:go]
-    cmds:
-      - go mod tidy
+    tidy:
+        desc: Run go mod tidy to sync dependencies
+        deps: [dependencies:go]
+        cmds:
+            - go mod tidy
 
-  format:
-    desc: Format all source files
-    deps: [dependencies:go, dependencies:npx]
-    cmds:
-      - echo "--- go fmt ---"
-      - go fmt ./...
-      - echo "--- prettier ---"
-      - npx prettier --write "**/*.md" "**/*.json" --ignore-path .gitignore
-      - 'echo "format: complete"'
+    format:
+        desc: Format all source files
+        deps: [dependencies:go, dependencies:npx]
+        cmds:
+            - echo "--- go fmt ---"
+            - go fmt ./...
+            - echo "--- prettier ---"
+            - npx prettier --write "**/*.md" "**/*.json" "**/*.yaml" --ignore-path .gitignore
+            - 'echo "format: complete"'
 
-  # ---------------------------------------------------------------------------
-  # Test
-  # ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
+    # Test
+    # ---------------------------------------------------------------------------
 
-  test:
-    desc: Run all Go tests
-    deps: [dependencies:go]
-    cmds:
-      - go test -v ./...
+    test:
+        desc: Run all Go tests
+        deps: [dependencies:go]
+        cmds:
+            - go test -v ./...
 
-  test:coverage:
-    desc: Run tests with coverage and extract metrics to {{.GATE_DIR}}
-    deps: [dependencies:go]
-    cmds:
-      - mkdir -p {{.GATE_DIR}}
-      - go test -coverprofile={{.GATE_DIR}}/coverage.profile ./...
-      - go tool cover -func={{.GATE_DIR}}/coverage.profile > {{.GATE_DIR}}/coverage.report.txt
-      - sh {{.SHELL_DIR}}/covpct.sh -s {{.GATE_DIR}}/coverage.report.txt -o {{.GATE_DIR}}/coverage.pct.txt
-      - sh {{.SHELL_DIR}}/covcolor.sh -s {{.GATE_DIR}}/coverage.pct.txt -o {{.GATE_DIR}}/coverage.color.txt
+    test:coverage:
+        desc: Run tests with coverage and extract metrics to {{.GATE_DIR}}
+        deps: [dependencies:go]
+        cmds:
+            - mkdir -p {{.GATE_DIR}}
+            - go test -coverprofile={{.GATE_DIR}}/coverage.profile ./...
+            - go tool cover -func={{.GATE_DIR}}/coverage.profile > {{.GATE_DIR}}/coverage.report.txt
+            - sh {{.SHELL_DIR}}/covpct.sh -s {{.GATE_DIR}}/coverage.report.txt -o
+              {{.GATE_DIR}}/coverage.pct.txt
+            - sh {{.SHELL_DIR}}/covcolor.sh -s {{.GATE_DIR}}/coverage.pct.txt -o
+              {{.GATE_DIR}}/coverage.color.txt
 
-  # ---------------------------------------------------------------------------
-  # Checks (linting)
-  # ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
+    # Checks (linting)
+    # ---------------------------------------------------------------------------
 
-  check:goreportcard:
-    desc: Run goreportcard-cli and extract grade to {{.GATE_DIR}}
-    deps: [dependencies:goreportcard]
-    cmds:
-      - echo "--- goreportcard-cli ---"
-      - mkdir -p {{.GATE_DIR}}
-      - go tool goreportcard-cli > {{.GATE_DIR}}/goreportcard.report.txt 2>&1 || true
-      - sh {{.SHELL_DIR}}/rcgrade.sh -s {{.GATE_DIR}}/goreportcard.report.txt -o {{.GATE_DIR}}/goreportcard.grade.txt
-      - sh {{.SHELL_DIR}}/rccolor.sh -s {{.GATE_DIR}}/goreportcard.grade.txt -o {{.GATE_DIR}}/goreportcard.color.txt
-      - |
-        grade=$(cat {{.GATE_DIR}}/goreportcard.grade.txt | tr -d '[:space:]')
-        case "$grade" in
-          A+|A) ;;
-          *)
-            echo "error: go report card grade ${grade} is below A" >&2
-            exit 1
-            ;;
-        esac
-        echo "go report card: ${grade}"
+    check:goreportcard:
+        desc: Run goreportcard-cli and extract grade to {{.GATE_DIR}}
+        deps: [dependencies:goreportcard]
+        cmds:
+            - echo "--- goreportcard-cli ---"
+            - mkdir -p {{.GATE_DIR}}
+            - go tool goreportcard-cli > {{.GATE_DIR}}/goreportcard.report.txt 2>&1 || true
+            - sh {{.SHELL_DIR}}/rcgrade.sh -s {{.GATE_DIR}}/goreportcard.report.txt -o
+              {{.GATE_DIR}}/goreportcard.grade.txt -t 95
+            - sh {{.SHELL_DIR}}/rccolor.sh -s {{.GATE_DIR}}/goreportcard.grade.txt -o
+              {{.GATE_DIR}}/goreportcard.color.txt
+            - |
+                grade=$(cat {{.GATE_DIR}}/goreportcard.grade.txt | tr -d '[:space:]')
+                case "$grade" in
+                  A+|A) ;;
+                  *)
+                    echo "error: go report card grade ${grade} is below A" >&2
+                    exit 1
+                    ;;
+                esac
+                echo "go report card: ${grade}"
 
-  check:lint:
-    desc: Lint, vet, and format check (read-only)
-    deps: [dependencies:go, dependencies:npx, dependencies:typos]
-    cmds:
-      - go vet ./...
-      - typos
+    check:lint:
+        desc: Lint, vet, and format check (read-only)
+        deps: [dependencies:go, dependencies:npx, dependencies:typos]
+        cmds:
+            - go vet ./...
+            - typos
 
-  check:format:
-    desc: Formatting check (read-only)
-    deps: [dependencies:go, dependencies:npx]
-    cmds:
-      - echo "--- go fmt check ---"
-      - |
-        unformatted=$(gofmt -l .)
-        if [ -n "$unformatted" ]; then
-          echo "error: unformatted Go files:" >&2
-          echo "$unformatted" >&2
-          exit 1
-        fi
-        echo "all Go files formatted"
-      - echo "--- prettier check ---"
-      - npx prettier --check "**/*.md" "**/*.json" --ignore-path vendor
+    check:format:
+        desc: Formatting check (read-only)
+        deps: [dependencies:go, dependencies:npx]
+        cmds:
+            - echo "--- go fmt check ---"
+            - |
+                unformatted=$(find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l)
+                if [ -n "$unformatted" ]; then
+                  echo "error: unformatted Go files:" >&2
+                  echo "$unformatted" >&2
+                  exit 1
+                fi
+                echo "all Go files formatted"
+            - echo "--- prettier check ---"
+            - npx prettier --check "**/*.md" "**/*.json" --ignore-path .gitignore
 
-  check:repo:
-    desc: Check that the repository is clean (read-only)
-    deps:
-      - dependencies:git
-    cmds:
-      - |
-        dirty=$(git status --porcelain)
-        if [ -n "$dirty" ]; then
-          echo "" >&2
-          echo "error: repository is dirty:" >&2
-          echo "$dirty" >&2
-          echo "" >&2
-          echo "Commit or reset changes and try again." >&2
-          exit 1
-        fi
-        echo "repository is clean"
+    check:repo:
+        desc: Check that the repository is clean (read-only)
+        deps:
+            - dependencies:git
+        cmds:
+            - |
+                dirty=$(git status --porcelain)
+                if [ -n "$dirty" ]; then
+                  echo "" >&2
+                  echo "error: repository is dirty:" >&2
+                  echo "$dirty" >&2
+                  echo "" >&2
+                  echo "Commit or reset changes and try again." >&2
+                  exit 1
+                fi
+                echo "repository is clean"
 
-  check:coverage:
-    desc: Run test coverage to verify minimum coverage standards
-    cmds:
-      - task: test:coverage
-      - |
-        color=$(cat {{.GATE_DIR}}/coverage.color.txt)
-        pct=$(cat {{.GATE_DIR}}/coverage.pct.txt)
-        if [ "$color" != "green" ]; then
-          echo "error: coverage ${pct}% is not green (got ${color})" >&2
-          exit 1
-        fi
-        echo "coverage: ${pct}% (${color})"
+    check:coverage:
+        desc: Run test coverage to verify minimum coverage standards
+        cmds:
+            - task: test:coverage
+            - |
+                color=$(cat {{.GATE_DIR}}/coverage.color.txt)
+                pct=$(cat {{.GATE_DIR}}/coverage.pct.txt)
+                if [ "$color" != "green" ]; then
+                  echo "error: coverage ${pct}% is not green (got ${color})" >&2
+                  exit 1
+                fi
+                echo "coverage: ${pct}% (${color})"
 
-  check:
-    desc: Run all gate checks
-    cmds:
-      - task: check:lint
-      - task: check:goreportcard
-      - task: check:format
+    check:
+        desc: Run all gate checks
+        cmds:
+            - task: check:lint
+            - task: check:goreportcard
+            - task: check:format
 
-  # ---------------------------------------------------------------------------
-  # Gate (release readiness)
-  # ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
+    # Gate (release readiness)
+    # ---------------------------------------------------------------------------
 
-  gate:readme:
-    internal: true
-    desc: Download badges and update README
-    deps: [dependencies:goreportcard, dependencies:curl, dependencies:npx]
-    vars:
-      COV_PCT:
-        sh: cat {{.GATE_DIR}}/coverage.pct.txt | cut -d. -f1
-      COV_COLOR:
-        sh: cat {{.GATE_DIR}}/coverage.color.txt | tr -d '[:space:]'
-      GRADE:
-        sh: cat {{.GATE_DIR}}/goreportcard.grade.txt | tr -d '[:space:]'
-      GRADE_COLOR:
-        sh: cat {{.GATE_DIR}}/goreportcard.color.txt | tr -d '[:space:]'
-    cmds:
-      - mkdir -p {{.GATE_DIR}}
-      - echo "--- downloading badges ---"
-      - |
-        sh {{.SHELL_DIR}}/badge.sh \
-          -o {{.GATE_DIR}}/go-reference-badge.svg \
-          -m "Reference" -k "91DFFB" \
-          --logo go --logo-color white --label-color white
-      - |
-        sh {{.SHELL_DIR}}/badge.sh \
-          -o {{.GATE_DIR}}/coverage-badge.svg \
-          -l "coverage" -m "{{.COV_PCT}}%25" -k "{{.COV_COLOR}}"
-      - |
-        sh {{.SHELL_DIR}}/badge.sh \
-          -o {{.GATE_DIR}}/go-report-badge.svg \
-          -l "go report" -m "{{.GRADE}}" -k "{{.GRADE_COLOR}}"
-      - |
-        sh {{.SHELL_DIR}}/badge.sh \
-          -o {{.GATE_DIR}}/license-badge.svg \
-          -l "license" -m "{{.LICENSE_ID}}" -k "blue"
-      - echo "--- updating README ---"
-      - |
-        badges_md=$(mktemp)
-        trap 'rm -f "$badges_md"' EXIT
-        sh {{.SHELL_DIR}}/badgesmd.sh \
-          -d {{.GATE_DIR}} \
-          -p "{{.COV_PCT}}" \
-          -g "{{.GRADE}}" \
-          -l "{{.LICENSE_ID}}" \
-          -o "$badges_md"
-        sh {{.SHELL_DIR}}/mdreplace.sh \
-          -t badges \
-          -s {{.README}} \
-          -c "$badges_md" \
-          -o {{.README}}
-        rm -f "$badges_md"
-      - npx prettier --write {{.README}}
+    gate:readme:
+        internal: true
+        desc: Download badges and update README
+        deps: [dependencies:goreportcard, dependencies:curl, dependencies:npx]
+        vars:
+            COV_PCT:
+                sh: cat {{.GATE_DIR}}/coverage.pct.txt | cut -d. -f1
+            COV_COLOR:
+                sh: cat {{.GATE_DIR}}/coverage.color.txt | tr -d '[:space:]'
+            GRADE:
+                sh: cat {{.GATE_DIR}}/goreportcard.grade.txt | tr -d '[:space:]'
+            GRADE_COLOR:
+                sh: cat {{.GATE_DIR}}/goreportcard.color.txt | tr -d '[:space:]'
+        cmds:
+            - mkdir -p {{.GATE_DIR}}
+            - echo "--- downloading badges ---"
+            - |
+                sh {{.SHELL_DIR}}/badge.sh \
+                  -o {{.GATE_DIR}}/go-reference-badge.svg \
+                  -m "Reference" -k "91DFFB" \
+                  --logo go --logo-color white --label-color white
+            - |
+                sh {{.SHELL_DIR}}/badge.sh \
+                  -o {{.GATE_DIR}}/coverage-badge.svg \
+                  -l "coverage" -m "{{.COV_PCT}}%25" -k "{{.COV_COLOR}}"
+            - |
+                sh {{.SHELL_DIR}}/badge.sh \
+                  -o {{.GATE_DIR}}/go-report-badge.svg \
+                  -l "go report" -m "{{.GRADE}}" -k "{{.GRADE_COLOR}}"
+            - |
+                sh {{.SHELL_DIR}}/badge.sh \
+                  -o {{.GATE_DIR}}/license-badge.svg \
+                  -l "license" -m "{{.LICENSE_ID}}" -k "blue"
+            - echo "--- updating README ---"
+            - |
+                badges_md=$(mktemp)
+                trap 'rm -f "$badges_md"' EXIT
+                sh {{.SHELL_DIR}}/badgesmd.sh \
+                  -d {{.GATE_DIR}} \
+                  -p "{{.COV_PCT}}" \
+                  -g "{{.GRADE}}" \
+                  -l "{{.LICENSE_ID}}" \
+                  -o "$badges_md"
+                sh {{.SHELL_DIR}}/mdreplace.sh \
+                  -t badges \
+                  -s {{.README}} \
+                  -c "$badges_md" \
+                  -o {{.README}}
+                rm -f "$badges_md"
+            - npx prettier --write {{.README}}
 
-  gate:check:
-    desc: Run full release gate checks
-    internal: true
-    cmds:
-      - task: clean
-      - task: check
-      - task: check:repo
-      - task: check:coverage
-      - task: gate:readme
-      - task: check:repo
+    gate:check:
+        desc: Run full release gate checks
+        cmds:
+            - task: clean
+            - task: check
+            - task: check:repo
+            - task: check:coverage
+            - task: gate:readme
+            - task: check:repo
 
+    # gate:
+    #   desc: Run full release gate (tidy, format, check, test, badges, clean tree)
+    #   cmds:
+    #     - task: gate:check
+    #     -
 
-  # gate:
-  #   desc: Run full release gate (tidy, format, check, test, badges, clean tree)
-  #   cmds:
-  #     - task: gate:check
-  #     - 
+    # ---------------------------------------------------------------------------
+    # Build
+    # ---------------------------------------------------------------------------
 
-  # ---------------------------------------------------------------------------
-  # Build
-  # ---------------------------------------------------------------------------
+    build:
+        desc: Build the inigo CLI binary
+        deps: [dependencies:go]
+        cmds:
+            - go build -o build/inigo ./cmd/inigo
 
-  build:
-    desc: Build the inigo CLI binary
-    deps: [dependencies:go]
-    cmds:
-      - go build -o build/inigo ./cmd/inigo
+    build:all:
+        desc: Cross-compile for all POSIX platforms
+        deps: [dependencies:go]
+        vars:
+            PLATFORMS: linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64
+        cmds:
+            - |
+                for platform in {{.PLATFORMS}}; do
+                  os=$(echo "$platform" | cut -d/ -f1)
+                  arch=$(echo "$platform" | cut -d/ -f2)
+                  output="build/${os}-${arch}"
+                  echo "building ${output}..."
+                  GOOS=$os GOARCH=$arch go build -o "$output" ./cmd/inigo || exit 1
+                done
+                echo "build:all complete"
 
-  build:all:
-    desc: Cross-compile for all POSIX platforms
-    deps: [dependencies:go]
-    vars:
-      PLATFORMS: linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 freebsd/amd64
-    cmds:
-      - |
-        for platform in {{.PLATFORMS}}; do
-          os=$(echo "$platform" | cut -d/ -f1)
-          arch=$(echo "$platform" | cut -d/ -f2)
-          output="build/${os}-${arch}"
-          echo "building ${output}..."
-          GOOS=$os GOARCH=$arch go build -o "$output" ./cmd/inigo || exit 1
-        done
-        echo "build:all complete"
+    # ---------------------------------------------------------------------------
+    # Clean
+    # ---------------------------------------------------------------------------
 
-  # ---------------------------------------------------------------------------
-  # Clean
-  # ---------------------------------------------------------------------------
+    clean:
+        desc: Remove generated artifacts
+        cmds:
+            - rm -f {{.GATE_DIR}}/*.txt
+            - rm -f {{.GATE_DIR}}/*.profile
+            - rm -f {{.GATE_DIR}}/*.svg
+            - rm -rf build/
+            - 'echo "clean: complete"'
 
-  clean:
-    desc: Remove generated artifacts
-    cmds:
-      - rm -f {{.GATE_DIR}}/*.txt
-      - rm -f {{.GATE_DIR}}/*.profile
-      - rm -f {{.GATE_DIR}}/*.svg
-      - rm -rf build/
-      - 'echo "clean: complete"'
+    # ---------------------------------------------------------------------------
+    # Help
+    # ---------------------------------------------------------------------------
 
-  # ---------------------------------------------------------------------------
-  # Help
-  # ---------------------------------------------------------------------------
-
-  help:
-    desc: Print usage help
-    silent: true
-    cmds:
-      - |
-        echo "inigo task runner"
-        echo "================="
-        echo ""
-        echo "This project uses 'task' (go-task) for automation."
-        echo "Install: go install github.com/go-task/task/v3/cmd/task@latest"
-        echo ""
-        echo "Usage:"
-        echo "  task <name>               Run a task"
-        echo "  task --list               List all available tasks"
-        echo "  task dependencies         Check all tool dependencies"
-        echo ""
-        echo "Common workflows:"
-        echo "  task tidy                 Run go mod tidy"
-        echo "  task format               Format all source files"
-        echo "  task test                 Run all Go tests"
-        echo "  task test:coverage        Run tests with coverage analysis"
-        echo "  task check                Run all gate checks (pre-release)"
-        echo "  task check:lint           Lint, vet, and typo check"
-        echo "  task check:format         Formatting check (read-only)"
-        echo "  task check:goreportcard   Run Go Report Card analysis"
-        echo "  task check:coverage       Verify minimum coverage standards"
-        echo "  task check:repo           Check that the repository is clean"
-        echo "  task build                Build the inigo CLI binary"
-        echo "  task build:all            Cross-compile for all platforms"
-        echo "  task clean                Remove generated artifacts"
+    help:
+        desc: Print usage help
+        silent: true
+        cmds:
+            - |
+                echo "inigo task runner"
+                echo "================="
+                echo ""
+                echo "This project uses 'task' (go-task) for automation."
+                echo "Install: go install github.com/go-task/task/v3/cmd/task@latest"
+                echo ""
+                echo "Usage:"
+                echo "  task <name>               Run a task"
+                echo "  task --list               List all available tasks"
+                echo "  task help                 Print this usage help"
+                echo ""
+                echo "Setup:"
+                echo "  task dependencies         Check that all tool dependencies are installed"
+                echo ""
+                echo "Tidy & Format:"
+                echo "  task tidy                 Run go mod tidy to sync dependencies"
+                echo "  task format               Format all source files"
+                echo ""
+                echo "Test:"
+                echo "  task test                 Run all Go tests"
+                echo "  task test:coverage        Run tests with coverage and extract metrics"
+                echo ""
+                echo "Checks:"
+                echo "  task check                Run all gate checks"
+                echo "  task check:lint           Lint, vet, and format check (read-only)"
+                echo "  task check:format         Formatting check (read-only)"
+                echo "  task check:goreportcard   Run goreportcard-cli and extract grade"
+                echo "  task check:coverage       Run test coverage to verify minimum standards"
+                echo "  task check:repo           Check that the repository is clean (read-only)"
+                echo ""
+                echo "Build:"
+                echo "  task build                Build the inigo CLI binary"
+                echo "  task build:all            Cross-compile for all POSIX platforms"
+                echo ""
+                echo "Maintenance:"
+                echo "  task clean                Remove generated artifacts"
