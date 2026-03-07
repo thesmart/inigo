@@ -182,24 +182,24 @@ func handleIncludeDirective(iniFile *IniFile, result *lineResult, currentSection
 func pushIncludeFile(iniFile *IniFile, absPath string, fc *FileCursor) error {
 	absPath, err := filepath.Abs(absPath)
 	if err != nil {
-		return fmt.Errorf("%s: failed to resolve path %q: %w", fc, absPath, err)
+		return parseError(fc, 0, "include", fmt.Sprintf("failed to resolve path %q: %v", absPath, err))
 	}
 
 	if iniFile.visited[absPath] {
-		return fmt.Errorf("%s: circular include detected: %q", fc, absPath)
+		return parseError(fc, 0, "include", fmt.Sprintf("circular include detected: %q", absPath))
 	}
 
 	info, err := os.Stat(absPath)
 	if err != nil {
-		return fmt.Errorf("%s: include file not found: %q", fc, absPath)
+		return parseError(fc, 0, "include", fmt.Sprintf("file not found: %q", absPath))
 	}
 	if info.IsDir() {
-		return fmt.Errorf("%s: include path is a directory: %q", fc, absPath)
+		return parseError(fc, 0, "include", fmt.Sprintf("path is a directory: %q", absPath))
 	}
 
 	contents, err := os.ReadFile(absPath)
 	if err != nil {
-		return fmt.Errorf("%s: failed to read include file %q: %w", fc, absPath, err)
+		return parseError(fc, 0, "include", fmt.Sprintf("failed to read file %q: %v", absPath, err))
 	}
 
 	iniFile.visited[absPath] = true
@@ -217,7 +217,7 @@ func pushIncludeFile(iniFile *IniFile, absPath string, fc *FileCursor) error {
 func pushIncludeDir(iniFile *IniFile, dirPath string, fc *FileCursor) error {
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
-		return fmt.Errorf("%s: failed to read include directory %q: %w", fc, dirPath, err)
+		return parseError(fc, 0, "include_dir", fmt.Sprintf("failed to read directory %q: %v", dirPath, err))
 	}
 
 	var files []string
