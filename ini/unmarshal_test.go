@@ -2,8 +2,10 @@ package ini
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
@@ -141,6 +143,121 @@ u64 = 999999999
 	}
 }
 
+func TestUnmarshalIniString_IntBoundaryValues(t *testing.T) {
+	// Test that exact min and max values are accepted for every integer type
+	contents := fmt.Sprintf(`i8 = %d
+i16 = %d
+i32 = %d
+i64 = %d
+`, math.MinInt8, math.MinInt16, math.MinInt32, math.MinInt64)
+	cfg, err := UnmarshalIniString[IntTypes]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error for min signed values: %v", err)
+	}
+	if cfg.I8 != math.MinInt8 {
+		t.Errorf("expected i8=%d, got %d", math.MinInt8, cfg.I8)
+	}
+	if cfg.I16 != math.MinInt16 {
+		t.Errorf("expected i16=%d, got %d", math.MinInt16, cfg.I16)
+	}
+	if cfg.I32 != math.MinInt32 {
+		t.Errorf("expected i32=%d, got %d", math.MinInt32, cfg.I32)
+	}
+	if cfg.I64 != math.MinInt64 {
+		t.Errorf("expected i64=%d, got %d", math.MinInt64, cfg.I64)
+	}
+
+	contents = fmt.Sprintf(`i8 = %d
+i16 = %d
+i32 = %d
+i64 = %d
+`, math.MaxInt8, math.MaxInt16, math.MaxInt32, math.MaxInt64)
+	cfg, err = UnmarshalIniString[IntTypes]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error for max signed values: %v", err)
+	}
+	if cfg.I8 != math.MaxInt8 {
+		t.Errorf("expected i8=%d, got %d", math.MaxInt8, cfg.I8)
+	}
+	if cfg.I16 != math.MaxInt16 {
+		t.Errorf("expected i16=%d, got %d", math.MaxInt16, cfg.I16)
+	}
+	if cfg.I32 != math.MaxInt32 {
+		t.Errorf("expected i32=%d, got %d", math.MaxInt32, cfg.I32)
+	}
+	if cfg.I64 != math.MaxInt64 {
+		t.Errorf("expected i64=%d, got %d", math.MaxInt64, cfg.I64)
+	}
+}
+
+func TestUnmarshalIniString_UintBoundaryValues(t *testing.T) {
+	contents := fmt.Sprintf(`u8 = %d
+u16 = %d
+u32 = %d
+u64 = %d
+`, math.MaxUint8, math.MaxUint16, math.MaxUint32, uint64(math.MaxUint64))
+	cfg, err := UnmarshalIniString[IntTypes]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error for max unsigned values: %v", err)
+	}
+	if cfg.U8 != math.MaxUint8 {
+		t.Errorf("expected u8=%d, got %d", math.MaxUint8, cfg.U8)
+	}
+	if cfg.U16 != math.MaxUint16 {
+		t.Errorf("expected u16=%d, got %d", math.MaxUint16, cfg.U16)
+	}
+	if cfg.U32 != math.MaxUint32 {
+		t.Errorf("expected u32=%d, got %d", math.MaxUint32, cfg.U32)
+	}
+	if cfg.U64 != math.MaxUint64 {
+		t.Errorf("expected u64=%d, got %d", uint64(math.MaxUint64), cfg.U64)
+	}
+}
+
+func TestUnmarshalIniString_FloatBoundaryValues(t *testing.T) {
+	type S struct {
+		Val float32 `ini:"val"`
+	}
+	contents := "val = " + strconv.FormatFloat(math.MaxFloat32, 'e', -1, 32)
+	cfg, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error for float32 max: %v", err)
+	}
+	if cfg.Val != math.MaxFloat32 {
+		t.Errorf("expected val=%v, got %v", math.MaxFloat32, cfg.Val)
+	}
+
+	contents = "val = " + strconv.FormatFloat(-math.MaxFloat32, 'e', -1, 32)
+	cfg, err = UnmarshalIniString[S]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error for float32 min: %v", err)
+	}
+	if cfg.Val != -math.MaxFloat32 {
+		t.Errorf("expected val=%v, got %v", -math.MaxFloat32, cfg.Val)
+	}
+
+	type S64 struct {
+		Val float64 `ini:"val"`
+	}
+	contents = "val = " + strconv.FormatFloat(math.MaxFloat64, 'e', -1, 64)
+	cfg64, err := UnmarshalIniString[S64]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error for float64 max: %v", err)
+	}
+	if cfg64.Val != math.MaxFloat64 {
+		t.Errorf("expected val=%v, got %v", math.MaxFloat64, cfg64.Val)
+	}
+
+	contents = "val = " + strconv.FormatFloat(-math.MaxFloat64, 'e', -1, 64)
+	cfg64, err = UnmarshalIniString[S64]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error for float64 min: %v", err)
+	}
+	if cfg64.Val != -math.MaxFloat64 {
+		t.Errorf("expected val=%v, got %v", -math.MaxFloat64, cfg64.Val)
+	}
+}
+
 func TestUnmarshalIniString_HexOctal(t *testing.T) {
 	contents := `i = 0xFF
 i8 = 077
@@ -157,15 +274,15 @@ i8 = 077
 	}
 }
 
-func TestUnmarshalIniString_FloatRound(t *testing.T) {
-	// Integer field with float value should round
+func TestUnmarshalIniString_FloatFloor(t *testing.T) {
+	// Integer field with float value should floor
 	contents := `i = 3.7`
 	cfg, err := UnmarshalIniString[IntTypes]("test.conf", "", contents)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.I != 4 {
-		t.Errorf("expected i=4 (rounded from 3.7), got %d", cfg.I)
+	if cfg.I != 3 {
+		t.Errorf("expected i=3 (floored from 3.7), got %d", cfg.I)
 	}
 }
 
@@ -269,7 +386,7 @@ func TestParseInt_Errors(t *testing.T) {
 func TestParseFloat_Errors(t *testing.T) {
 	tests := []string{"", "abc"}
 	for _, s := range tests {
-		_, err := parseFloat(s)
+		_, err := parseFloat(s, 64)
 		if err == nil {
 			t.Errorf("expected error for %q", s)
 		}
@@ -511,5 +628,94 @@ func TestUnmarshalIniString_EmptyFloat(t *testing.T) {
 	_, err := UnmarshalIniString[F]("test.conf", "", contents)
 	if err == nil {
 		t.Error("expected error for empty float value")
+	}
+}
+
+func TestUnmarshalIniString_IntOverflow(t *testing.T) {
+	type S struct {
+		Val int8 `ini:"val"`
+	}
+	contents := `val = 200`
+	_, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for int8=200")
+	}
+
+	contents = `val = -200`
+	_, err = UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for int8=-200")
+	}
+}
+
+func TestUnmarshalIniString_Int16Overflow(t *testing.T) {
+	type S struct {
+		Val int16 `ini:"val"`
+	}
+	contents := `val = 40000`
+	_, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for int16=40000")
+	}
+}
+
+func TestUnmarshalIniString_Int32Overflow(t *testing.T) {
+	type S struct {
+		Val int32 `ini:"val"`
+	}
+	contents := `val = 3000000000`
+	_, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for int32=3000000000")
+	}
+}
+
+func TestUnmarshalIniString_UintOverflow(t *testing.T) {
+	type S struct {
+		Val uint8 `ini:"val"`
+	}
+	contents := `val = 300`
+	_, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for uint8=300")
+	}
+}
+
+func TestUnmarshalIniString_Uint16Overflow(t *testing.T) {
+	type S struct {
+		Val uint16 `ini:"val"`
+	}
+	contents := `val = 70000`
+	_, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for uint16=70000")
+	}
+}
+
+func TestUnmarshalIniString_Uint32Overflow(t *testing.T) {
+	type S struct {
+		Val uint32 `ini:"val"`
+	}
+	contents := `val = 5000000000`
+	_, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for uint32=5000000000")
+	}
+}
+
+func TestUnmarshalIniString_Float32Overflow(t *testing.T) {
+	type S struct {
+		Val float32 `ini:"val"`
+	}
+	contents := `val = 3.5e+38`
+	_, err := UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for float32=3.5e+38")
+	}
+
+	contents = `val = -3.5e+38`
+	_, err = UnmarshalIniString[S]("test.conf", "", contents)
+	if err == nil {
+		t.Error("expected overflow error for float32=-3.5e+38")
 	}
 }

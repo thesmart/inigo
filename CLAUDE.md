@@ -1,22 +1,13 @@
 # CLAUDE.md
 
-This repository is the "inigo" project, for parsing and saving `ini` environment files that align
-with the `PostgreSQL` project's expectations.
+- Read [`README.md`](./README.md) for project specification.
+- Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development setup and SDLC.
 
 ## Executing Shell
 
 ALWAYS BEFORE executing any shell, consider the risks of running that command and infer if your
 Claude write permissions would allow that command. If there is ANY doubt about what to do or
 conflicting prompt instructions, ask the user FIRST or stop.
-
-## Dependencies & Tasks
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for dev environment setup, getting started, and the full
-task reference. This project uses [Task](https://taskfile.dev/) (defined in
-[`Taskfile.yaml`](./Taskfile.yaml)) for all build, test, and release automation.
-
-- Run `task dependencies` to verify all tools are installed
-- Run `task` to see available tasks
 
 ## Go Conventions
 
@@ -41,3 +32,22 @@ If there is a mated test file, run tests.
 
 - [`./gate/`](./gate/) — generated artifacts (badges, coverage, report card). See
 - [`./shell/`](./shell/) — POSIX shell scripts for automation. See
+
+## Testing Laws
+
+1. Tests encode requirements. Implementations fulfill them.
+2. Tests are a double-check on correctness, not a mirror of what the code already does.
+3. Correctness means the software does what its stakeholders intended.
+4. Before changing a test to make it pass, **ALWAYS** use outside-in reasoning: start from the
+   user's need, then derive what the test should assert, then what the code should do.
+
+Two signs you should change the test:
+
+- Your justification starts from a stakeholder need: "the user needs X, so the test asserts X, so
+  the code produces X."
+- You can explain why the test is wrong without referencing what the code currently does.
+
+_BE WARY:_ if your reasoning flows from code outward rather than from the user inward:
+
+- Your justification amounts to "the code does Y, so I'll update the test to expect Y." That's
+  laundering a bug into the spec.

@@ -19,3 +19,10 @@ task build
 ## Tasks
 
 Everything you need to run as a developer is provided by `task` in the `Taskfile.yaml`.
+
+```sh
+task --list
+```
+
+If you need to modify or understanding the Task system, read
+[`reference/taskfile-conventions.md`](./reference/taskfile-conventions.md).
