@@ -40,7 +40,10 @@ Reference for the INI file format as implemented by this package, aligned with P
 - Parameters before any section header belong to the **default (global) section**
 - Section names are case-insensitive identifiers
 - Empty sections (header with no parameters) are valid
-- PostgreSQL's `postgresql.conf` uses a flat file (no sections); sections are an INI extension
+- Duplicate sections are ignored (first one wins)
+- PostgreSQL's [`postgresql.conf`](https://www.postgresql.org/docs/18/config-setting.html) uses a
+  flat file (no sections), while its
+  [connection service file](https://www.postgresql.org/docs/18/libpq-pgservice.html) does.
 
 ## Parameters (Key/Value Pairs)
 
@@ -95,3 +98,4 @@ override earlier ones.
 - Boolean literals: `on`, `off`, `true`, `false`, `yes`, `no`, `1`, `0`
 - Include directives: `include`, `include_if_exists`, `include_dir`
 - Units (case-sensitive): `B`, `kB`, `MB`, `GB`, `TB`, `us`, `ms`, `s`, `min`, `h`, `d`
+    - NOTE: the `inigo` implementation doesn't support this

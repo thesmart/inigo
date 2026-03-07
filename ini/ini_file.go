@@ -106,10 +106,12 @@ func parseFileCursor(iniFile *IniFile) error {
 
 		case lineSection:
 			sectionKey := strings.ToLower(result.section)
-			if sec, ok := iniFile.sections[sectionKey]; ok {
-				currentSection = sec
+			if _, ok := iniFile.sections[sectionKey]; ok {
+				// Duplicate sections are ignored (first one wins).
+				// Set currentSection to nil so subsequent parameters are discarded.
+				currentSection = nil
 			} else {
-				sec = &Section{
+				sec := &Section{
 					name:   result.section,
 					params: make(map[string]*Param),
 				}
@@ -118,6 +120,10 @@ func parseFileCursor(iniFile *IniFile) error {
 			}
 
 		case lineParameter:
+			if currentSection == nil {
+				// Inside a duplicate section; ignore parameters.
+				continue
+			}
 			paramKey := strings.ToLower(result.param.name)
 			if _, exists := currentSection.params[paramKey]; !exists {
 				currentSection.order = append(currentSection.order, paramKey)

@@ -330,7 +330,9 @@ func TestMarshalIniFile_Error(t *testing.T) {
 	}
 }
 
-func TestUnmarshalIniStringIntermediate_DuplicateSection(t *testing.T) {
+func TestUnmarshalIniStringIntermediate_DuplicateSectionIgnored(t *testing.T) {
+	// Duplicate sections are ignored (first one wins).
+	// Parameters in the second occurrence of [section] should be discarded.
 	contents := `
 [section]
 a = 1
@@ -346,11 +348,37 @@ b = 2
 	if sec == nil {
 		t.Fatal("expected section")
 	}
-	// Both params should be in the same section
-	if _, ok := sec.params["a"]; !ok {
-		t.Error("expected param a")
+	// First section's param should be present
+	if p, ok := sec.params["a"]; !ok || p.value != "1" {
+		t.Error("expected param a=1 from first section")
 	}
-	if _, ok := sec.params["b"]; !ok {
-		t.Error("expected param b")
+	// Second section's param should be ignored
+	if _, ok := sec.params["b"]; ok {
+		t.Error("param b should be ignored because duplicate sections are ignored (first one wins)")
+	}
+}
+
+func TestUnmarshalIniStringIntermediate_DuplicateSectionCaseInsensitive(t *testing.T) {
+	// Section names are case-insensitive, so [Section] and [SECTION] are duplicates.
+	contents := `
+[Section]
+x = first
+
+[SECTION]
+y = second
+`
+	iniFile, err := unmarshalIniStringIntermediate("test.conf", contents)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	sec := iniFile.getSection("section")
+	if sec == nil {
+		t.Fatal("expected section")
+	}
+	if p, ok := sec.params["x"]; !ok || p.value != "first" {
+		t.Error("expected param x=first from first section")
+	}
+	if _, ok := sec.params["y"]; ok {
+		t.Error("param y should be ignored because [SECTION] is a duplicate of [Section]")
 	}
 }
