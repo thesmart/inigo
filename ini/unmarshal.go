@@ -37,7 +37,7 @@ func UnmarshalIniString[T any](path string, section string, contents string) (*T
 
 // unmarshalIniFileStruct fills a struct from parsed IniFile data (Pass 2).
 func unmarshalIniFileStruct[T any](iniFile *IniFile, section string, target *T) error {
-	sec := iniFile.getSection(section)
+	sec := iniFile.Get(section)
 	if sec == nil {
 		return fmt.Errorf("section %q not found", section)
 	}
@@ -74,12 +74,12 @@ func unmarshalIniFileStruct[T any](iniFile *IniFile, section string, target *T) 
 		methodName := "Unmarshal_" + field.Name
 		method := reflect.ValueOf(target).MethodByName(methodName)
 		if method.IsValid() {
-			results := method.Call([]reflect.Value{reflect.ValueOf(param.value)})
+			results := method.Call([]reflect.Value{reflect.ValueOf(param.Value)})
 			if len(results) == 2 {
 				if !results[1].IsNil() {
 					err := results[1].Interface().(error)
 					return fmt.Errorf("%s:%d:%d: custom unmarshal %s: %w",
-						iniFile.path, param.cursor.Line, param.cursor.Offset, methodName, err)
+						iniFile.Path, param.cursor.Line, param.cursor.Offset, methodName, err)
 				}
 				fv.Set(results[0])
 				continue
@@ -88,7 +88,7 @@ func unmarshalIniFileStruct[T any](iniFile *IniFile, section string, target *T) 
 
 		if err := setFieldFromParam(fv, param); err != nil {
 			return fmt.Errorf("%s:%d:%d: field %s (param %q): %w",
-				iniFile.path, param.cursor.Line, param.cursor.Offset,
+				iniFile.Path, param.cursor.Line, param.cursor.Offset,
 				field.Name, paramName, err)
 		}
 	}
@@ -100,15 +100,15 @@ func unmarshalIniFileStruct[T any](iniFile *IniFile, section string, target *T) 
 func setFieldFromParam(fv reflect.Value, p *Param) error {
 	switch fv.Kind() {
 	case reflect.String:
-		fv.SetString(p.value)
+		fv.SetString(p.Value)
 	case reflect.Bool:
-		v, err := parseBool(p.value)
+		v, err := parseBool(p.Value)
 		if err != nil {
 			return err
 		}
 		fv.SetBool(v)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		v, err := parseInt(p.value)
+		v, err := parseInt(p.Value)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func setFieldFromParam(fv reflect.Value, p *Param) error {
 		}
 		fv.SetInt(v)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		v, err := parseUint(p.value)
+		v, err := parseUint(p.Value)
 		if err != nil {
 			return err
 		}
@@ -126,13 +126,13 @@ func setFieldFromParam(fv reflect.Value, p *Param) error {
 		}
 		fv.SetUint(v)
 	case reflect.Float32:
-		v, err := parseFloat(p.value, 32)
+		v, err := parseFloat(p.Value, 32)
 		if err != nil {
 			return err
 		}
 		fv.SetFloat(v)
 	case reflect.Float64:
-		v, err := parseFloat(p.value, 64)
+		v, err := parseFloat(p.Value, 64)
 		if err != nil {
 			return err
 		}

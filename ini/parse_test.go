@@ -121,11 +121,11 @@ func TestParseLine_Parameter(t *testing.T) {
 			t.Errorf("expected lineParameter for %q, got %d", tt.line, result.kind)
 			continue
 		}
-		if result.param.name != tt.key {
-			t.Errorf("expected key %q for %q, got %q", tt.key, tt.line, result.param.name)
+		if result.param.Name != tt.key {
+			t.Errorf("expected key %q for %q, got %q", tt.key, tt.line, result.param.Name)
 		}
-		if result.param.value != tt.value {
-			t.Errorf("expected value %q for %q, got %q", tt.value, tt.line, result.param.value)
+		if result.param.Value != tt.value {
+			t.Errorf("expected value %q for %q, got %q", tt.value, tt.line, result.param.Value)
 		}
 	}
 }
@@ -210,8 +210,8 @@ func TestParseLine_IncludeAsParam(t *testing.T) {
 	if result.kind != lineParameter {
 		t.Errorf("expected lineParameter, got %d", result.kind)
 	}
-	if result.param.name != "include" {
-		t.Errorf("expected key 'include', got %q", result.param.name)
+	if result.param.Name != "include" {
+		t.Errorf("expected key 'include', got %q", result.param.Name)
 	}
 }
 

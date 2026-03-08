@@ -6,15 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/thesmart/inigo"
 )
 
-// TestMain builds the binary once for integration tests.
 var testBinary string
 
 func TestMain(m *testing.M) {
-	// Build the binary into a temp directory for integration tests
 	tmp, err := os.MkdirTemp("", "inigo-test-*")
 	if err != nil {
 		panic(err)
@@ -31,102 +27,127 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestIntegrationHelp(t *testing.T) {
-	cmd := exec.Command(testBinary, "--help")
-	out, err := cmd.Output()
+func TestHelp(t *testing.T) {
+	out, err := exec.Command(testBinary, "--help").Output()
 	if err != nil {
 		t.Fatalf("--help failed: %v", err)
 	}
-	if !strings.Contains(string(out), "Usage:") {
-		t.Errorf("expected usage text, got:\n%s", out)
+	if !strings.Contains(string(out), "env") || !strings.Contains(string(out), "json") {
+		t.Errorf("expected subcommands in help, got:\n%s", out)
 	}
 }
 
-func TestIntegrationHelpShort(t *testing.T) {
-	cmd := exec.Command(testBinary, "-h")
-	out, err := cmd.Output()
+func TestEnvHelp(t *testing.T) {
+	out, err := exec.Command(testBinary, "env", "--help").Output()
 	if err != nil {
-		t.Fatalf("-h failed: %v", err)
+		t.Fatalf("env --help failed: %v", err)
 	}
-	if !strings.Contains(string(out), "Usage:") {
-		t.Errorf("expected usage text, got:\n%s", out)
+	if !strings.Contains(string(out), "--prefix") || !strings.Contains(string(out), "--filter") {
+		t.Errorf("expected flags in env help, got:\n%s", out)
 	}
 }
 
-func TestIntegrationExec(t *testing.T) {
-	ini := filepath.Join(t.TempDir(), "test.ini")
-	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\nport = 5432\n"), 0o644)
-
-	cmd := exec.Command(testBinary, "--prefix", "PG", ini, "mydb", "--", "env")
-	out, err := cmd.Output()
+func TestJsonHelp(t *testing.T) {
+	out, err := exec.Command(testBinary, "json", "--help").Output()
 	if err != nil {
-		t.Fatalf("exec failed: %v", err)
+		t.Fatalf("json --help failed: %v", err)
+	}
+	if !strings.Contains(string(out), "INIGO_JSON") {
+		t.Errorf("expected INIGO_JSON in json help, got:\n%s", out)
+	}
+}
+
+func writeIni(t *testing.T, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "test.ini")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestEnvPrefix(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\nport = 5432\n")
+	out, err := exec.Command(testBinary, "env", "--prefix", "PG", ini, "mydb", "--", "env").Output()
+	if err != nil {
+		t.Fatalf("env --prefix failed: %v", err)
 	}
 	output := string(out)
 	if !strings.Contains(output, "PGHOST=localhost") {
-		t.Errorf("expected PGHOST=localhost in output:\n%s", output)
+		t.Errorf("expected PGHOST=localhost, got:\n%s", output)
 	}
 	if !strings.Contains(output, "PGPORT=5432") {
-		t.Errorf("expected PGPORT=5432 in output:\n%s", output)
+		t.Errorf("expected PGPORT=5432, got:\n%s", output)
 	}
 }
 
-func TestIntegrationMissingArgs(t *testing.T) {
-	cmd := exec.Command(testBinary)
-	err := cmd.Run()
-	if err == nil {
-		t.Fatal("expected non-zero exit for missing args")
+func TestEnvPrefixLowercaseNormalized(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	out, err := exec.Command(testBinary, "env", "--prefix", "pg", ini, "mydb", "--", "env").Output()
+	if err != nil {
+		t.Fatalf("env --prefix lowercase failed: %v", err)
 	}
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		t.Fatalf("expected ExitError, got %T", err)
-	}
-	if exitErr.ExitCode() != 2 {
-		t.Errorf("exit code = %d, want 2", exitErr.ExitCode())
+	if !strings.Contains(string(out), "PGHOST=localhost") {
+		t.Errorf("expected PGHOST=localhost, got:\n%s", out)
 	}
 }
 
-func TestIntegrationMissingSection(t *testing.T) {
-	ini := filepath.Join(t.TempDir(), "test.ini")
-	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
-
-	cmd := exec.Command(testBinary, ini, "nosection", "--", "env")
-	err := cmd.Run()
-	if err == nil {
-		t.Fatal("expected non-zero exit for missing section")
+func TestEnvFilter(t *testing.T) {
+	ini := writeIni(t, "PGHOST = localhost\nPGPORT = 5432\nOTHER = ignore\n")
+	out, err := exec.Command(testBinary, "env", "--filter", "PG", ini, "--", "env").Output()
+	if err != nil {
+		t.Fatalf("env --filter failed: %v", err)
 	}
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		t.Fatalf("expected ExitError, got %T", err)
+	output := string(out)
+	if !strings.Contains(output, "PGHOST=localhost") {
+		t.Errorf("expected PGHOST=localhost, got:\n%s", output)
 	}
-	if exitErr.ExitCode() != 1 {
-		t.Errorf("exit code = %d, want 1", exitErr.ExitCode())
+	if strings.Contains(output, "OTHER=ignore") {
+		t.Errorf("expected OTHER to be filtered out, got:\n%s", output)
 	}
 }
 
-func TestIntegrationMissingFile(t *testing.T) {
-	cmd := exec.Command(testBinary, "/nonexistent/file.ini", "mydb", "--", "env")
-	err := cmd.Run()
-	if err == nil {
-		t.Fatal("expected non-zero exit for missing file")
+func TestEnvDefaultSection(t *testing.T) {
+	ini := writeIni(t, "host = localhost\nport = 5432\n")
+	out, err := exec.Command(testBinary, "env", ini, "--", "env").Output()
+	if err != nil {
+		t.Fatalf("env default section failed: %v", err)
 	}
-	exitErr, ok := err.(*exec.ExitError)
-	if !ok {
-		t.Fatalf("expected ExitError, got %T", err)
-	}
-	if exitErr.ExitCode() != 1 {
-		t.Errorf("exit code = %d, want 1", exitErr.ExitCode())
+	output := string(out)
+	if !strings.Contains(output, "HOST=localhost") {
+		t.Errorf("expected HOST=localhost, got:\n%s", output)
 	}
 }
 
-func TestIntegrationCommandNotFound(t *testing.T) {
-	ini := filepath.Join(t.TempDir(), "test.ini")
-	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
+func TestEnvMissingFile(t *testing.T) {
+	err := exec.Command(testBinary, "env", "/nonexistent/file.ini", "--", "env").Run()
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
 
-	cmd := exec.Command(testBinary, ini, "mydb", "--", "nonexistent_command_xyz")
+func TestEnvMissingSection(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	err := exec.Command(testBinary, "env", ini, "nosection", "--", "env").Run()
+	if err == nil {
+		t.Fatal("expected error for missing section")
+	}
+}
+
+func TestEnvMissingCommand(t *testing.T) {
+	ini := writeIni(t, "host = localhost\n")
+	err := exec.Command(testBinary, "env", ini, "--").Run()
+	if err == nil {
+		t.Fatal("expected error for missing command after --")
+	}
+}
+
+func TestEnvCommandNotFound(t *testing.T) {
+	ini := writeIni(t, "host = localhost\n")
+	cmd := exec.Command(testBinary, "env", ini, "--", "nonexistent_command_xyz_999")
 	err := cmd.Run()
 	if err == nil {
-		t.Fatal("expected non-zero exit for missing command")
+		t.Fatal("expected error for missing command")
 	}
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
@@ -137,308 +158,266 @@ func TestIntegrationCommandNotFound(t *testing.T) {
 	}
 }
 
-func TestParseArgsHelp(t *testing.T) {
-	tests := []struct {
-		name string
-		argv []string
-	}{
-		{"--help alone", []string{"--help"}},
-		{"-h alone", []string{"-h"}},
-		{"--help with other args", []string{"config.ini", "--help", "mydb", "--", "psql"}},
-		{"-h before separator", []string{"-h", "config.ini", "mydb", "--", "psql"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := parseArgs(tt.argv)
-			if err != errHelp {
-				t.Errorf("parseArgs(%v) error = %v, want errHelp", tt.argv, err)
-			}
-		})
-	}
-}
-
-func TestRunHelp(t *testing.T) {
-	code := run([]string{"--help"}, nil)
-	if code != 0 {
-		t.Errorf("run(--help) = %d, want 0", code)
-	}
-}
-
-func TestRunBadArgs(t *testing.T) {
-	code := run([]string{}, nil)
-	if code != 2 {
-		t.Errorf("run() = %d, want 2", code)
-	}
-}
-
-func TestRunMissingFile(t *testing.T) {
-	code := run([]string{"/nonexistent/file.ini", "mydb", "--", "env"}, nil)
-	if code != 1 {
-		t.Errorf("run(missing file) = %d, want 1", code)
-	}
-}
-
-func TestRunMissingSection(t *testing.T) {
-	dir := t.TempDir()
-	ini := filepath.Join(dir, "test.ini")
-	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
-
-	code := run([]string{ini, "nosection", "--", "env"}, nil)
-	if code != 1 {
-		t.Errorf("run(missing section) = %d, want 1", code)
-	}
-}
-
-func TestRunCommandNotFound(t *testing.T) {
-	dir := t.TempDir()
-	ini := filepath.Join(dir, "test.ini")
-	os.WriteFile(ini, []byte("[mydb]\nhost = localhost\n"), 0o644)
-
-	code := run([]string{ini, "mydb", "--", "nonexistent_command_xyz_999"}, nil)
-	if code != 127 {
-		t.Errorf("run(command not found) = %d, want 127", code)
-	}
-}
-
-func TestParseArgs(t *testing.T) {
-	tests := []struct {
-		name    string
-		argv    []string
-		want    args
-		wantErr bool
-	}{
-		{
-			"basic",
-			[]string{"config.ini", "mydb", "--", "psql"},
-			args{iniFile: "config.ini", section: "mydb", command: []string{"psql"}},
-			false,
-		},
-		{
-			"with prefix long flag",
-			[]string{"--prefix", "PG", "config.ini", "mydb", "--", "psql"},
-			args{prefix: "PG", iniFile: "config.ini", section: "mydb", command: []string{"psql"}},
-			false,
-		},
-		{
-			"with prefix short flag",
-			[]string{"-p", "PG", "config.ini", "mydb", "--", "psql"},
-			args{prefix: "PG", iniFile: "config.ini", section: "mydb", command: []string{"psql"}},
-			false,
-		},
-		{
-			"prefix lowercase normalized to upper",
-			[]string{"-p", "pg", "config.ini", "mydb", "--", "psql"},
-			args{prefix: "PG", iniFile: "config.ini", section: "mydb", command: []string{"psql"}},
-			false,
-		},
-		{
-			"command with args",
-			[]string{"config.ini", "mydb", "--", "psql", "-U", "admin", "-d", "myapp"},
-			args{iniFile: "config.ini", section: "mydb", command: []string{"psql", "-U", "admin", "-d", "myapp"}},
-			false,
-		},
-		{
-			"flags after positional",
-			[]string{"config.ini", "mydb", "--prefix", "PG", "--", "psql"},
-			args{prefix: "PG", iniFile: "config.ini", section: "mydb", command: []string{"psql"}},
-			false,
-		},
-		{
-			"missing separator",
-			[]string{"config.ini", "mydb", "psql"},
-			args{},
-			true,
-		},
-		{
-			"missing command after separator",
-			[]string{"config.ini", "mydb", "--"},
-			args{},
-			true,
-		},
-		{
-			"too few positional args",
-			[]string{"config.ini", "--", "psql"},
-			args{},
-			true,
-		},
-		{
-			"too many positional args",
-			[]string{"config.ini", "mydb", "extra", "--", "psql"},
-			args{},
-			true,
-		},
-		{
-			"unknown flag",
-			[]string{"--verbose", "config.ini", "mydb", "--", "psql"},
-			args{},
-			true,
-		},
-		{
-			"prefix missing value",
-			[]string{"--prefix", "--", "psql"},
-			args{},
-			true,
-		},
-		{
-			"no args at all",
-			[]string{},
-			args{},
-			true,
-		},
-		{
-			"only separator",
-			[]string{"--"},
-			args{},
-			true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseArgs(tt.argv)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("parseArgs(%v) error = %v, wantErr %v", tt.argv, err, tt.wantErr)
-				return
-			}
-			if tt.wantErr {
-				return
-			}
-			if got.prefix != tt.want.prefix {
-				t.Errorf("prefix = %q, want %q", got.prefix, tt.want.prefix)
-			}
-			if got.iniFile != tt.want.iniFile {
-				t.Errorf("iniFile = %q, want %q", got.iniFile, tt.want.iniFile)
-			}
-			if got.section != tt.want.section {
-				t.Errorf("section = %q, want %q", got.section, tt.want.section)
-			}
-			if len(got.command) != len(tt.want.command) {
-				t.Errorf("command = %v, want %v", got.command, tt.want.command)
-				return
-			}
-			for i := range got.command {
-				if got.command[i] != tt.want.command[i] {
-					t.Errorf("command[%d] = %q, want %q", i, got.command[i], tt.want.command[i])
-				}
-			}
-		})
-	}
-}
-
-func TestBuildEnv(t *testing.T) {
-	cfg, err := inigo.Parse(strings.NewReader("[mydb]\nhost = localhost\nport = 5432\ndbname = myapp\n"))
+func TestJsonStdout(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\nport = 5432\ndbname = myapp\n")
+	out, err := exec.Command(testBinary, "json", ini, "mydb").Output()
 	if err != nil {
-		t.Fatalf("Parse failed: %v", err)
+		t.Fatalf("json stdout failed: %v", err)
 	}
-	sec := cfg.Section("mydb")
-
-	t.Run("no prefix", func(t *testing.T) {
-		env := buildEnv(sec, "")
-		want := map[string]string{
-			"DBNAME": "myapp",
-			"HOST":   "localhost",
-			"PORT":   "5432",
-		}
-		if len(env) != len(want) {
-			t.Fatalf("got %d entries, want %d", len(env), len(want))
-		}
-		for _, entry := range env {
-			key, val, _ := strings.Cut(entry, "=")
-			if w, ok := want[key]; !ok {
-				t.Errorf("unexpected key %q", key)
-			} else if val != w {
-				t.Errorf("%s = %q, want %q", key, val, w)
-			}
-		}
-	})
-
-	t.Run("with prefix", func(t *testing.T) {
-		env := buildEnv(sec, "PG")
-		want := map[string]string{
-			"PGDBNAME": "myapp",
-			"PGHOST":   "localhost",
-			"PGPORT":   "5432",
-		}
-		if len(env) != len(want) {
-			t.Fatalf("got %d entries, want %d", len(env), len(want))
-		}
-		for _, entry := range env {
-			key, val, _ := strings.Cut(entry, "=")
-			if w, ok := want[key]; !ok {
-				t.Errorf("unexpected key %q", key)
-			} else if val != w {
-				t.Errorf("%s = %q, want %q", key, val, w)
-			}
-		}
-	})
-
-	t.Run("empty section", func(t *testing.T) {
-		cfg2, _ := inigo.Parse(strings.NewReader("[empty]\n"))
-		sec2 := cfg2.Section("empty")
-		env := buildEnv(sec2, "PG")
-		if len(env) != 0 {
-			t.Errorf("got %d entries, want 0", len(env))
-		}
-	})
+	output := strings.TrimSpace(string(out))
+	if !strings.Contains(output, `"host":"localhost"`) {
+		t.Errorf("expected host in JSON, got: %s", output)
+	}
+	if !strings.Contains(output, `"port":"5432"`) {
+		t.Errorf("expected port in JSON, got: %s", output)
+	}
 }
 
-func TestMergeEnv(t *testing.T) {
-	t.Run("override existing key", func(t *testing.T) {
-		current := []string{"HOME=/home/user", "HOST=oldvalue", "PATH=/usr/bin"}
-		overlay := []string{"HOST=newvalue"}
-		result := mergeEnv(current, overlay)
+func TestJsonDefaultSection(t *testing.T) {
+	ini := writeIni(t, "host = localhost\n")
+	out, err := exec.Command(testBinary, "json", ini).Output()
+	if err != nil {
+		t.Fatalf("json default section failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"host":"localhost"`) {
+		t.Errorf("expected host in JSON, got: %s", out)
+	}
+}
 
-		if len(result) != 3 {
-			t.Fatalf("got %d entries, want 3", len(result))
-		}
-		// HOST should be replaced in-place at index 1
-		if result[0] != "HOME=/home/user" {
-			t.Errorf("result[0] = %q, want %q", result[0], "HOME=/home/user")
-		}
-		if result[1] != "HOST=newvalue" {
-			t.Errorf("result[1] = %q, want %q", result[1], "HOST=newvalue")
-		}
-		if result[2] != "PATH=/usr/bin" {
-			t.Errorf("result[2] = %q, want %q", result[2], "PATH=/usr/bin")
-		}
-	})
+func TestJsonExec(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	out, err := exec.Command(testBinary, "json", ini, "mydb", "--", "env").Output()
+	if err != nil {
+		t.Fatalf("json exec failed: %v", err)
+	}
+	if !strings.Contains(string(out), `INIGO_JSON=`) {
+		t.Errorf("expected INIGO_JSON env var, got:\n%s", out)
+	}
+}
 
-	t.Run("append new keys", func(t *testing.T) {
-		current := []string{"HOME=/home/user"}
-		overlay := []string{"PGHOST=localhost", "PGPORT=5432"}
-		result := mergeEnv(current, overlay)
+func TestJsonMissingSection(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	err := exec.Command(testBinary, "json", ini, "nosection").Run()
+	if err == nil {
+		t.Fatal("expected error for missing section")
+	}
+}
 
-		if len(result) != 3 {
-			t.Fatalf("got %d entries, want 3", len(result))
-		}
-		if result[0] != "HOME=/home/user" {
-			t.Errorf("result[0] = %q, want %q", result[0], "HOME=/home/user")
-		}
-		if result[1] != "PGHOST=localhost" {
-			t.Errorf("result[1] = %q, want %q", result[1], "PGHOST=localhost")
-		}
-		if result[2] != "PGPORT=5432" {
-			t.Errorf("result[2] = %q, want %q", result[2], "PGPORT=5432")
-		}
-	})
+func TestJsonCaseSnake(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb-host = localhost\ndb-port = 5432\n")
+	out, err := exec.Command(testBinary, "json", "--case", "snake", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case snake failed: %v", err)
+	}
+	output := string(out)
+	if !strings.Contains(output, `"db_host"`) {
+		t.Errorf("expected db_host in JSON, got: %s", output)
+	}
+	if !strings.Contains(output, `"db_port"`) {
+		t.Errorf("expected db_port in JSON, got: %s", output)
+	}
+}
 
-	t.Run("empty overlay", func(t *testing.T) {
-		current := []string{"HOME=/home/user", "PATH=/usr/bin"}
-		result := mergeEnv(current, nil)
+func TestJsonCaseCamel(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\ndb_port = 5432\n")
+	out, err := exec.Command(testBinary, "json", "--case", "camel", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case camel failed: %v", err)
+	}
+	output := string(out)
+	if !strings.Contains(output, `"dbHost"`) {
+		t.Errorf("expected dbHost in JSON, got: %s", output)
+	}
+	if !strings.Contains(output, `"dbPort"`) {
+		t.Errorf("expected dbPort in JSON, got: %s", output)
+	}
+}
 
-		if len(result) != 2 {
-			t.Fatalf("got %d entries, want 2", len(result))
-		}
-	})
+func TestJsonCaseCamelFromKebab(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb-host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "camel", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case camel failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"dbHost"`) {
+		t.Errorf("expected dbHost in JSON, got: %s", out)
+	}
+}
 
-	t.Run("empty current", func(t *testing.T) {
-		overlay := []string{"PGHOST=localhost"}
-		result := mergeEnv(nil, overlay)
+func TestJsonCaseUpper(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "upper", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case upper failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"HOST"`) {
+		t.Errorf("expected HOST in JSON, got: %s", out)
+	}
+}
 
-		if len(result) != 1 {
-			t.Fatalf("got %d entries, want 1", len(result))
-		}
-		if result[0] != "PGHOST=localhost" {
-			t.Errorf("result[0] = %q, want %q", result[0], "PGHOST=localhost")
-		}
-	})
+func TestJsonCaseLower(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nHOST = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "lower", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case lower failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"host"`) {
+		t.Errorf("expected host in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCasePascal(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "pascal", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case pascal failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"DbHost"`) {
+		t.Errorf("expected DbHost in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExampleUpperSnake(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb-host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "UPPER_CASE", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case UPPER_CASE failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"DB_HOST"`) {
+		t.Errorf("expected DB_HOST in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExampleUpperKebab(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "UPPER-CASE", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case UPPER-CASE failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"DB-HOST"`) {
+		t.Errorf("expected DB-HOST in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseKebab(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "kebab", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case kebab failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"db-host"`) {
+		t.Errorf("expected db-host in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseInvalid(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	// Mixed separators: both _ and - is ambiguous and should error.
+	err := exec.Command(testBinary, "json", "--case", "snake_kebab-mix", ini, "mydb").Run()
+	if err == nil {
+		t.Fatal("expected error for invalid --case value")
+	}
+}
+
+func TestJsonCaseDown(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nHOST = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "down", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case down failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"host"`) {
+		t.Errorf("expected host in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseUp(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "up", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case up failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"HOST"`) {
+		t.Errorf("expected HOST in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExampleSnake(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb-host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "snake_case", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case snake_case failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"db_host"`) {
+		t.Errorf("expected db_host in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExampleKebab(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "kebab-case", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case kebab-case failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"db-host"`) {
+		t.Errorf("expected db-host in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExampleCamel(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "camelCase", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case camelCase failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"dbHost"`) {
+		t.Errorf("expected dbHost in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExamplePascal(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "PascalCase", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case PascalCase failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"DbHost"`) {
+		t.Errorf("expected DbHost in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExampleLowercase(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "lowercase", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case lowercase failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"host"`) {
+		t.Errorf("expected host in JSON, got: %s", out)
+	}
+}
+
+func TestJsonCaseExampleUppercase(t *testing.T) {
+	ini := writeIni(t, "[mydb]\nhost = localhost\n")
+	out, err := exec.Command(testBinary, "json", "--case", "UPPERCASE", ini, "mydb").Output()
+	if err != nil {
+		t.Fatalf("json --case UPPERCASE failed: %v", err)
+	}
+	if !strings.Contains(string(out), `"HOST"`) {
+		t.Errorf("expected HOST in JSON, got: %s", out)
+	}
+}
+
+func TestEnvFilterAndPrefix(t *testing.T) {
+	ini := writeIni(t, "DBHOST = localhost\nDBPORT = 5432\nOTHER = ignore\n")
+	out, err := exec.Command(testBinary, "env", "--filter", "DB", "--prefix", "MY", ini, "--", "env").Output()
+	if err != nil {
+		t.Fatalf("env --filter --prefix failed: %v", err)
+	}
+	output := string(out)
+	if !strings.Contains(output, "MYDBHOST=localhost") {
+		t.Errorf("expected MYDBHOST=localhost, got:\n%s", output)
+	}
+	if strings.Contains(output, "MYOTHER=ignore") || strings.Contains(output, "OTHER=ignore") {
+		t.Errorf("expected OTHER to be filtered out, got:\n%s", output)
+	}
 }

@@ -202,8 +202,8 @@ func parseParamLine(line string, start int, fc *FileCursor) (*lineResult, error)
 	return &lineResult{
 		kind: lineParameter,
 		param: &Param{
-			name:  key,
-			value: value,
+			Name:  key,
+			Value: value,
 			cursor: Cursor{
 				Line:   fc.Line,
 				Offset: int32(keyStart),

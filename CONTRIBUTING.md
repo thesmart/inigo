@@ -26,3 +26,11 @@ task --list
 
 If you need to modify or understanding the Task system, read
 [`reference/taskfile-conventions.md`](./reference/taskfile-conventions.md).
+
+## Go Conventions
+
+- Always implement code that follows modern Go conventions in 2025 as of v1.25
+- Always consider using the [standard library](https://pkg.go.dev/std) first
+- Consider popular, well tested packages w/ low dependencies via [pkg.go.dev](https://pkg.go.dev/)
+- Prefer direct GitHub imports (e.g., `github.com/user/repo`) over legacy redirect services like
+  `gopkg.in`. Use whatever path the module declares in its `go.mod`.

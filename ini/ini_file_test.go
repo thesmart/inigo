@@ -17,15 +17,15 @@ func TestUnmarshalIniFileIntermediate_Basic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if iniFile.defaultSection == nil {
+	if iniFile.DefaultSection == nil {
 		t.Fatal("expected default section")
 	}
-	p, ok := iniFile.defaultSection.params["key"]
+	p, ok := iniFile.DefaultSection.params["key"]
 	if !ok {
 		t.Fatal("expected param 'key'")
 	}
-	if p.value != "value" {
-		t.Errorf("expected value='value', got %q", p.value)
+	if p.Value != "value" {
+		t.Errorf("expected value='value', got %q", p.Value)
 	}
 }
 
@@ -47,10 +47,10 @@ func TestUnmarshalIniFileIntermediate_Include(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if p, ok := iniFile.defaultSection.params["host"]; !ok || p.value != "mainhost" {
+	if p, ok := iniFile.DefaultSection.params["host"]; !ok || p.Value != "mainhost" {
 		t.Errorf("expected host=mainhost")
 	}
-	if p, ok := iniFile.defaultSection.params["port"]; !ok || p.value != "9999" {
+	if p, ok := iniFile.DefaultSection.params["port"]; !ok || p.Value != "9999" {
 		t.Errorf("expected port=9999")
 	}
 }
@@ -72,9 +72,9 @@ func TestUnmarshalIniFileIntermediate_IncludeOverrides(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	p, ok := iniFile.defaultSection.params["host"]
-	if !ok || p.value != "overridden" {
-		t.Errorf("expected host=overridden, got %q", p.value)
+	p, ok := iniFile.DefaultSection.params["host"]
+	if !ok || p.Value != "overridden" {
+		t.Errorf("expected host=overridden, got %q", p.Value)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestUnmarshalIniFileIntermediate_IncludeIfExists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if p, ok := iniFile.defaultSection.params["host"]; !ok || p.value != "val" {
+	if p, ok := iniFile.DefaultSection.params["host"]; !ok || p.Value != "val" {
 		t.Error("expected host=val")
 	}
 }
@@ -116,9 +116,9 @@ func TestUnmarshalIniFileIntermediate_IncludeDir(t *testing.T) {
 	}
 
 	// Last file wins: 10override.conf
-	p, ok := iniFile.defaultSection.params["host"]
-	if !ok || p.value != "override" {
-		t.Errorf("expected host=override (from 10override.conf), got %q", p.value)
+	p, ok := iniFile.DefaultSection.params["host"]
+	if !ok || p.Value != "override" {
+		t.Errorf("expected host=override (from 10override.conf), got %q", p.Value)
 	}
 }
 
@@ -182,8 +182,8 @@ func TestUnmarshalIniFileIntermediate_RelativeInclude(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	p, ok := iniFile.defaultSection.params["port"]
-	if !ok || p.value != "1234" {
+	p, ok := iniFile.DefaultSection.params["port"]
+	if !ok || p.Value != "1234" {
 		t.Errorf("expected port=1234 from relative include")
 	}
 }
@@ -203,23 +203,23 @@ host = apphost
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if p, ok := iniFile.defaultSection.params["global"]; !ok || p.value != "yes" {
+	if p, ok := iniFile.DefaultSection.params["global"]; !ok || p.Value != "yes" {
 		t.Error("expected global=yes in default section")
 	}
 
-	dbSec := iniFile.getSection("database")
+	dbSec := iniFile.Get("database")
 	if dbSec == nil {
 		t.Fatal("expected database section")
 	}
-	if p, ok := dbSec.params["host"]; !ok || p.value != "dbhost" {
+	if p, ok := dbSec.params["host"]; !ok || p.Value != "dbhost" {
 		t.Error("expected host=dbhost in database section")
 	}
 
-	appSec := iniFile.getSection("app")
+	appSec := iniFile.Get("app")
 	if appSec == nil {
 		t.Fatal("expected app section")
 	}
-	if p, ok := appSec.params["host"]; !ok || p.value != "apphost" {
+	if p, ok := appSec.params["host"]; !ok || p.Value != "apphost" {
 		t.Error("expected host=apphost in app section")
 	}
 }
@@ -227,9 +227,9 @@ host = apphost
 func TestGetSection_Nil(t *testing.T) {
 	iniFile := &IniFile{
 		sections:       make(map[string]*Section),
-		defaultSection: &Section{params: make(map[string]*Param)},
+		DefaultSection: &Section{params: make(map[string]*Param)},
 	}
-	if iniFile.getSection("nonexistent") != nil {
+	if iniFile.Get("nonexistent") != nil {
 		t.Error("expected nil for nonexistent section")
 	}
 }
@@ -259,7 +259,7 @@ func TestUnmarshalIniFileIntermediate_IncludeWithLinesAfter(t *testing.T) {
 	}
 
 	for _, key := range []string{"a", "b", "c"} {
-		if _, ok := iniFile.defaultSection.params[key]; !ok {
+		if _, ok := iniFile.DefaultSection.params[key]; !ok {
 			t.Errorf("expected param %q", key)
 		}
 	}
@@ -315,8 +315,8 @@ func TestUnmarshalIniFileIntermediate_IncludeIfExistsFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	p, ok := iniFile.defaultSection.params["port"]
-	if !ok || p.value != "7777" {
+	p, ok := iniFile.DefaultSection.params["port"]
+	if !ok || p.Value != "7777" {
 		t.Error("expected port=7777 from include_if_exists")
 	}
 }
@@ -344,12 +344,12 @@ b = 2
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	sec := iniFile.getSection("section")
+	sec := iniFile.Get("section")
 	if sec == nil {
 		t.Fatal("expected section")
 	}
 	// First section's param should be present
-	if p, ok := sec.params["a"]; !ok || p.value != "1" {
+	if p, ok := sec.params["a"]; !ok || p.Value != "1" {
 		t.Error("expected param a=1 from first section")
 	}
 	// Second section's param should be ignored
@@ -371,14 +371,44 @@ y = second
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	sec := iniFile.getSection("section")
+	sec := iniFile.Get("section")
 	if sec == nil {
 		t.Fatal("expected section")
 	}
-	if p, ok := sec.params["x"]; !ok || p.value != "first" {
+	if p, ok := sec.params["x"]; !ok || p.Value != "first" {
 		t.Error("expected param x=first from first section")
 	}
 	if _, ok := sec.params["y"]; ok {
 		t.Error("param y should be ignored because [SECTION] is a duplicate of [Section]")
+	}
+}
+
+func TestUnmarshalIniStringIntermediate_DuplicateParamInDuplicateSection(t *testing.T) {
+	// Within the first (winning) section, last occurrence of a param wins.
+	// The duplicate section is entirely ignored.
+	contents := `
+[section]
+a = 1
+a = 2
+
+[section]
+a = 3
+b = 4
+`
+	iniFile, err := unmarshalIniStringIntermediate("test.conf", contents)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	sec := iniFile.Get("section")
+	if sec == nil {
+		t.Fatal("expected section")
+	}
+	// Last occurrence in the first section wins
+	if p, ok := sec.params["a"]; !ok || p.Value != "2" {
+		t.Errorf("expected a=2 (last in first section), got %q", p.Value)
+	}
+	// Param from duplicate section should be ignored
+	if _, ok := sec.params["b"]; ok {
+		t.Error("param b should be ignored because duplicate sections are ignored (first one wins)")
 	}
 }

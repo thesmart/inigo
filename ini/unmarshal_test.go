@@ -18,6 +18,31 @@ type BasicConfig struct {
 	Skipped string  // no tag, should be skipped
 }
 
+type IgnoredFieldConfig struct {
+	Host   string `ini:"host"`
+	Secret string `ini:""`
+	Port   int    `ini:"port"`
+}
+
+func TestUnmarshalIniString_IgnoredField(t *testing.T) {
+	// ini:"" should cause the field to be skipped, even when the file
+	// contains a "secret" key that would match by name.
+	contents := "host = localhost\nsecret = hunter2\nport = 5432\n"
+	cfg, err := UnmarshalIniString[IgnoredFieldConfig]("test.conf", "", contents)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Secret != "" {
+		t.Errorf("expected Secret to remain zero-value, got %q", cfg.Secret)
+	}
+	if cfg.Host != "localhost" {
+		t.Errorf("expected host=localhost, got %q", cfg.Host)
+	}
+	if cfg.Port != 5432 {
+		t.Errorf("expected port=5432, got %d", cfg.Port)
+	}
+}
+
 func TestUnmarshalIniString_Basic(t *testing.T) {
 	contents := `host = localhost
 port = 5432

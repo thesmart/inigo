@@ -2,34 +2,98 @@ package ini
 
 import (
 	"fmt"
+	"iter"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
+// ********************************
+// Intermediates and Methods
+// ********************************
+
 // IniFile is an intermediate structural representation of an ini configuration file.
 type IniFile struct {
-	path           string
+	Path           string
 	cursor         *FileCursor
 	stack          []*FileCursor
 	visited        map[string]bool
-	defaultSection *Section
+	DefaultSection *Section
 	sections       map[string]*Section
+	sectionOrder   []string // insertion order of section keys (lowercased)
 }
 
 // Section represents a named group of key-value parameters.
 type Section struct {
-	name   string
-	params map[string]*Param
-	order  []string // insertion order of param keys (lowercased)
+	Name       string
+	params     map[string]*Param
+	paramOrder []string // insertion order of param keys (lowercased)
 }
 
 // Param represents a single parameter with its raw string value.
 type Param struct {
-	name   string
-	value  string
+	Name   string
+	Value  string
 	cursor Cursor
+}
+
+// Get returns the section for the given name (case-insensitive), or DefaultSection for "".
+func (f *IniFile) Get(name string) *Section {
+	if name == "" {
+		return f.DefaultSection
+	}
+	return f.sections[strings.ToLower(name)]
+}
+
+// Sections iterates over sections in insertion order, default section first.
+func (f *IniFile) Sections() iter.Seq[*Section] {
+	return func(yield func(*Section) bool) {
+		if !yield(f.DefaultSection) {
+			return
+		}
+		for _, key := range f.sectionOrder {
+			if !yield(f.sections[key]) {
+				return
+			}
+		}
+	}
+}
+
+// Get returns the param value for the given name (case-insensitive) and whether it was found.
+func (s *Section) Get(name string) (string, bool) {
+	p, ok := s.params[strings.ToLower(name)]
+	if !ok {
+		return "", false
+	}
+	return p.Value, true
+}
+
+// Params iterates over params in insertion order, yielding (name, value) pairs.
+func (s *Section) Params() iter.Seq2[string, string] {
+	return func(yield func(string, string) bool) {
+		for _, key := range s.paramOrder {
+			p := s.params[key]
+			if !yield(p.Name, p.Value) {
+				return
+			}
+		}
+	}
+}
+
+// ********************************
+// (Un)Marshaling and Parsing
+// ********************************
+
+// Load parses an ini file from disk and returns the parsed IniFile.
+func Load(path string) (*IniFile, error) {
+	return unmarshalIniFileIntermediate(path)
+}
+
+// Parse parses ini content from a string and returns the parsed IniFile.
+// The path is used for include directive resolution and error messages.
+func Parse(path string, contents string) (*IniFile, error) {
+	return unmarshalIniStringIntermediate(path, contents)
 }
 
 // unmarshalIniFileIntermediate parses an ini file from disk into an IniFile intermediate.
@@ -51,11 +115,11 @@ func unmarshalIniFileIntermediate(path string) (*IniFile, error) {
 // The path is used for include directive resolution and error messages.
 func unmarshalIniStringIntermediate(path string, contents string) (*IniFile, error) {
 	iniFile := &IniFile{
-		path:     path,
+		Path:     path,
 		visited:  make(map[string]bool),
 		sections: make(map[string]*Section),
-		defaultSection: &Section{
-			name:   "",
+		DefaultSection: &Section{
+			Name:   "",
 			params: make(map[string]*Param),
 		},
 	}
@@ -88,7 +152,7 @@ func unmarshalIniStringIntermediate(path string, contents string) (*IniFile, err
 func parseFileCursor(iniFile *IniFile) error {
 	fc := iniFile.cursor
 	lines := strings.Split(fc.Contents, "\n")
-	currentSection := iniFile.defaultSection
+	currentSection := iniFile.DefaultSection
 
 	// Track which section was last active (for includes that resume)
 	for i, line := range lines {
@@ -112,10 +176,11 @@ func parseFileCursor(iniFile *IniFile) error {
 				currentSection = nil
 			} else {
 				sec := &Section{
-					name:   result.section,
+					Name:   result.section,
 					params: make(map[string]*Param),
 				}
 				iniFile.sections[sectionKey] = sec
+				iniFile.sectionOrder = append(iniFile.sectionOrder, sectionKey)
 				currentSection = sec
 			}
 
@@ -124,9 +189,9 @@ func parseFileCursor(iniFile *IniFile) error {
 				// Inside a duplicate section; ignore parameters.
 				continue
 			}
-			paramKey := strings.ToLower(result.param.name)
+			paramKey := strings.ToLower(result.param.Name)
 			if _, exists := currentSection.params[paramKey]; !exists {
-				currentSection.order = append(currentSection.order, paramKey)
+				currentSection.paramOrder = append(currentSection.paramOrder, paramKey)
 			}
 			currentSection.params[paramKey] = result.param
 
@@ -246,12 +311,4 @@ func resolvePath(path, baseDir string) string {
 		return path
 	}
 	return filepath.Join(baseDir, path)
-}
-
-// getSection returns the section for the given name (case-insensitive), or defaultSection for "".
-func (f *IniFile) getSection(name string) *Section {
-	if name == "" {
-		return f.defaultSection
-	}
-	return f.sections[strings.ToLower(name)]
 }
