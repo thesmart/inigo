@@ -35,7 +35,7 @@ This specification defines a simple super-set of features on top of PostgreSQL's
 
 ## PGINI Configuration Standard
 
-PGINI (pronounced: "pag-EE-nee"):
+PGINI (pronounced: "pee-gee-nee"):
 
 - mime-type: `text/x-pgini`
 - encoding: `UTF-8`
