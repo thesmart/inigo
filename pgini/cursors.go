@@ -1,9 +1,11 @@
-// Package pgini implements cursors and data structures for parsing PGINI
-// configuration files, a PostgreSQL-compatible INI format.
+// Cursors are for parsing PGINI configuration files, a PostgreSQL-compatible
+// INI format. They load data into intermediates: `IniFile`, `Section`, and
+// `Param`.
 //
 // See reference/pgini-agents.md for the specification this package implements.
 // This is the root PGINI implementation: other source files in the package
 // should change to match it, but this file should not change to match others.
+
 package pgini
 
 import (

@@ -1,5 +1,9 @@
 // Defines the parsed, intermediate data representation of an INI configuration
 // file that follows the PGINI standard.
+//
+// See reference/pgini-agents.md for the specification this package implements.
+// This is the root PGINI implementation: other source files in the package
+// should change to match it, but this file should not change to match others.
 
 package pgini
 
@@ -7,15 +11,8 @@ import (
 	"fmt"
 	"iter"
 	"path"
-	"regexp"
 	"strings"
 )
-
-// unquotedValueRe matches values that can appear unquoted in PGINI output.
-// Per the grammar: unquoted-value ::= safe-char+ where safe-char is
-// letter | digit | [_.\-]. This covers booleans (true, false, on, off,
-// yes, no, 1, 0), integers (100, 0xFF, 077), and floats (1.5, 0.001).
-var unquotedValueRe = regexp.MustCompile(`^[a-zA-Z0-9_.\-]+$`)
 
 // IniFile represents a parsed PGINI configuration file.
 type IniFile struct {
@@ -100,17 +97,9 @@ func (f *IniFile) Sections() iter.Seq2[int, *Section] {
 	}
 }
 
-// String returns the complete PGINI file content with all sections in
-// insertion order, separated by blank lines.
+// String returns a human-readable summary of the IniFile.
 func (f *IniFile) String() string {
-	var b strings.Builder
-	for i, name := range f.sectionOrder {
-		if i > 0 {
-			b.WriteString("\n")
-		}
-		b.WriteString(f.sections[name].String())
-	}
-	return b.String()
+	return fmt.Sprintf("IniFile(%q, %d sections)", f.Name, len(f.sectionOrder))
 }
 
 // Section represents a named group of key-value parameters.
@@ -137,19 +126,6 @@ func NewSection(name string) (*Section, error) {
 		Name:   lower,
 		params: make(map[string]*Param),
 	}, nil
-}
-
-// String returns the PGINI representation of the section, including the
-// section header (unless it is the default section) followed by all parameters.
-func (s *Section) String() string {
-	var b strings.Builder
-	if s.Name != "" {
-		fmt.Fprintf(&b, "[%s]\n", s.Name)
-	}
-	for _, key := range s.paramOrder {
-		fmt.Fprintln(&b, s.params[key].String())
-	}
-	return b.String()
 }
 
 // SetParam sets or overwrites a parameter in the section. The key is normalized
@@ -192,23 +168,30 @@ func (s *Section) GetValue(name string) (string, bool) {
 	return p.Value, true
 }
 
+// Params returns an iterator over parameters in insertion order.
+func (s *Section) Params() iter.Seq2[int, *Param] {
+	return func(yield func(int, *Param) bool) {
+		for i, name := range s.paramOrder {
+			if !yield(i, s.params[name]) {
+				return
+			}
+		}
+	}
+}
+
+// String returns a human-readable summary of the Section.
+func (s *Section) String() string {
+	name := s.Name
+	if name == "" {
+		name = "(default)"
+	}
+	return fmt.Sprintf("Section(%q, %d params)", name, len(s.paramOrder))
+}
+
 // Param represents a single parameter with its raw string value.
 type Param struct {
 	Name  string
 	Value string
-}
-
-// String returns the PGINI representation of the parameter as "key = value".
-// Values that match safe-char+ (booleans, integers, floats, simple identifiers)
-// are written unquoted. All other values are single-quoted with internal single
-// quotes escaped as \' and backslashes as \\.
-func (p *Param) String() string {
-	if unquotedValueRe.MatchString(p.Value) {
-		return fmt.Sprintf("%s = %s", p.Name, p.Value)
-	}
-	escaped := strings.ReplaceAll(p.Value, `\`, `\\`)
-	escaped = strings.ReplaceAll(escaped, `'`, `\'`)
-	return fmt.Sprintf("%s = '%s'", p.Name, escaped)
 }
 
 // NewParam creates a new Param with the given name and value.
@@ -223,4 +206,9 @@ func NewParam(name string, value string) (*Param, error) {
 		Name:  lower,
 		Value: value,
 	}, nil
+}
+
+// String returns a human-readable summary of the Param.
+func (p *Param) String() string {
+	return fmt.Sprintf("Param(%q, %q)", p.Name, p.Value)
 }
