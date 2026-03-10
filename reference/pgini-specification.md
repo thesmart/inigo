@@ -39,7 +39,7 @@ PGINI (pronounced: "pee-gee-nee"):
 
 - mime-type: `text/x-pgini`
 - encoding: `UTF-8`
-- preferred file extension: `.conf`
+- preferred file extensions: `.conf` or `.pgini`
     - not required: may have any file extension
 
 PGINI files contain:
@@ -142,8 +142,8 @@ explains how datatypes are expressed in the INI:
 
 - `include 'filename'` - include another INI file
 - `include_if_exists 'filename'` - include another INI file if it exists, otherwise ignore
-- `include_dir 'directory'` - include all `.conf` files in directory processed in ascii order, files
-  starting with `.` are excluded
+- `include_dir 'directory'` - include all `.conf` and `.pgini` files in directory processed in ascii
+  order, files starting with `.` are excluded
 
 Included files are processed as if inserted into the configuration file at that point.
 
