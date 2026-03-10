@@ -2,7 +2,8 @@
 // configuration files, a PostgreSQL-compatible INI format.
 //
 // See reference/pgini-agents.md for the specification this package implements.
-// DO NOT CHANGE THIS FILE TO MATCH OTHER FILES.
+// This is the root PGINI implementation: other source files in the package
+// should change to match it, but this file should not change to match others.
 package pgini
 
 import (
@@ -215,58 +216,4 @@ func (c *FileCursor) NextChar() bool {
 func (c *FileCursor) String() string {
 	// Output adjusts 0-indexed to 1-indexed
 	return fmt.Sprintf("FileCursor: %q:%d:%d", c.Path, c.lineOffset+1, c.charOffset+1)
-}
-
-// Section represents a named group of key-value parameters.
-// The Name is stored lowercase; an empty Name represents the default section.
-type Section struct {
-	Name       string
-	params     map[string]*Param
-	paramOrder []string
-}
-
-// SetParam sets or overwrites a parameter in the section. The key is normalized
-// to lowercase per the PGINI spec (keys are case-insensitive). Duplicate keys
-// update the existing value (last occurrence wins).
-// It returns an error if name is not a valid PGINI identifier.
-func (s *Section) SetParam(name string, value string) (*Param, error) {
-	lower := strings.ToLower(name)
-	if !identifierRe.MatchString(lower) {
-		return nil, fmt.Errorf("invalid parameter key %q: must match [A-Za-z_][A-Za-z0-9_.\\-]*", name)
-	}
-
-	if p, ok := s.params[lower]; ok {
-		p.Value = value
-		return p, nil
-	}
-	p := &Param{
-		Name:  lower,
-		Value: value,
-	}
-	s.params[lower] = p
-	s.paramOrder = append(s.paramOrder, lower)
-	return p, nil
-}
-
-// GetParam returns the parameter for the given key (case-insensitive)
-// and whether it was found.
-func (s *Section) GetParam(name string) (*Param, bool) {
-	p, ok := s.params[strings.ToLower(name)]
-	return p, ok
-}
-
-// GetValue returns the string value for the given key (case-insensitive)
-// and whether it was found.
-func (s *Section) GetValue(name string) (string, bool) {
-	p, ok := s.params[strings.ToLower(name)]
-	if !ok {
-		return "", false
-	}
-	return p.Value, true
-}
-
-// Param represents a single parameter with its raw string value.
-type Param struct {
-	Name  string
-	Value string
 }
