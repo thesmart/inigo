@@ -189,10 +189,11 @@ quoted-value   ::= "'" ( print-char | "''" | "\'" )* "'"
 unquoted-value ::= safe-char+
 
 quoted-path    ::= "'" ( abs-path | rel-path ) "'"
-abs-path       ::= '/' rel-path
-rel-path       ::= path-component ( '/' path-component )*
-path-component ::= path-char+
-path-char      ::= [^#x00-#x1F #x27 #x7F /]
+pathname       ::= abs-path | rel-path
+abs-path       ::= '/' rel-path?
+rel-path       ::= path-segment ( '/' path-segment )*
+path-segment   ::= segment-char+
+segment-char   ::= [^#x00-#x1F #x27 #x7F /]
 
 letter         ::= [a-zA-Z]
 digit          ::= [0-9]
