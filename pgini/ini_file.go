@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"iter"
 	"path"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -102,6 +104,23 @@ func (f *IniFile) String() string {
 	return fmt.Sprintf("IniFile(%q, %d sections)", f.Name, len(f.sectionOrder))
 }
 
+// MarshalIni implements encoding.TextMarshaler. It produces a complete
+// PGINI document with all sections in insertion order, separated by blank lines.
+func (f *IniFile) MarshalIni() ([]byte, error) {
+	var b strings.Builder
+	for i, name := range f.sectionOrder {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		text, err := f.sections[name].MarshalIni()
+		if err != nil {
+			return nil, err
+		}
+		b.Write(text)
+	}
+	return []byte(b.String()), nil
+}
+
 // Section represents a named group of key-value parameters.
 // The Name is stored lowercase; an empty Name represents the default section.
 type Section struct {
@@ -188,6 +207,25 @@ func (s *Section) String() string {
 	return fmt.Sprintf("Section(%q, %d params)", name, len(s.paramOrder))
 }
 
+// MarshalIni implements encoding.TextMarshaler. It produces a PGINI section
+// block: the section header (omitted for the default section) followed by
+// all parameters in insertion order.
+func (s *Section) MarshalIni() ([]byte, error) {
+	var b strings.Builder
+	if s.Name != "" {
+		fmt.Fprintf(&b, "[%s]\n", s.Name)
+	}
+	for _, key := range s.paramOrder {
+		text, err := s.params[key].MarshalIni()
+		if err != nil {
+			return nil, err
+		}
+		b.Write(text)
+		b.WriteByte('\n')
+	}
+	return []byte(b.String()), nil
+}
+
 // Param represents a single parameter with its raw string value.
 type Param struct {
 	Name  string
@@ -211,4 +249,22 @@ func NewParam(name string, value string) (*Param, error) {
 // String returns a human-readable summary of the Param.
 func (p *Param) String() string {
 	return fmt.Sprintf("Param(%q, %q)", p.Name, p.Value)
+}
+
+// unquotedValueRe matches values that can appear unquoted in PGINI output.
+// Per the grammar: unquoted-value ::= safe-char+ where safe-char is
+// letter | digit | [_.\-]. This covers booleans (true, false, on, off,
+// yes, no, 1, 0), integers (100, 0xFF, 077), and floats (1.5, 0.001).
+var unquotedValueRe = regexp.MustCompile(`^[a-zA-Z0-9_.\-]+$`)
+
+// MarshalIni implements encoding.TextMarshaler. It produces a single PGINI
+// parameter line: "key = value". Values matching safe-char+ (booleans,
+// integers, floats, simple identifiers) are written unquoted. All other
+// values are single-quoted with \' and \\ escaping.
+func (p *Param) MarshalIni() ([]byte, error) {
+	if unquotedValueRe.MatchString(p.Value) {
+		return fmt.Appendf(nil, "%s = %s", p.Name, p.Value), nil
+	}
+	escaped := strconv.Quote(p.Value)
+	return fmt.Appendf(nil, "%s = '%s'", p.Name, escaped), nil
 }
