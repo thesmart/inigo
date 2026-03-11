@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -24,26 +23,21 @@ var identifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.\-]*$`)
 // RootCursor is the root cursor for iterating over a PGINI file and the tree
 // of included files in pre-order.
 type RootCursor struct {
-	Path string
+	// File holds the parsed sections, path, and ordering.
+	File *IniFile
 	// Current file and position for cursing
 	current *FileCursor
 	// Included files for pre-order traversal
 	stack []*FileCursor
 	// Prevents circular loops
 	visited map[string]bool
-	// Currently opened section name while parsing
-	openSection string
-	// Sections by name (lowercased) in all parsed files
-	sections map[string]*Section
-	// insertion order of section names (lowercased)
-	sectionOrder []string
 }
 
 // NewRootCursor reads the file at path and returns a new RootCursor.
-func NewRootCursor(path string) (*RootCursor, error) {
-	absPath, err := filepath.Abs(path)
+func NewRootCursor(filePath string) (*RootCursor, error) {
+	absPath, err := filepath.Abs(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve path %q: %w", path, err)
+		return nil, fmt.Errorf("failed to resolve path %q: %w", filePath, err)
 	}
 
 	contents, err := os.ReadFile(absPath)
@@ -52,33 +46,35 @@ func NewRootCursor(path string) (*RootCursor, error) {
 	}
 
 	c := &RootCursor{
-		Path: absPath,
+		File: NewIniFile(absPath),
 		current: &FileCursor{
 			Path:       absPath,
 			contents:   strings.Split(string(contents), "\n"),
 			lineOffset: 0,
 			charOffset: 0,
 		},
-		stack:        make([]*FileCursor, 0),
-		visited:      make(map[string]bool),
-		openSection:  "",
-		sections:     make(map[string]*Section),
-		sectionOrder: make([]string, 0),
+		stack:   make([]*FileCursor, 0),
+		visited: make(map[string]bool),
 	}
 	c.visited[absPath] = true
 	return c, nil
 }
 
 // AddInclude pushes a new included file onto the traversal stack.
+// Relative paths are resolved against the directory of the current file.
 // It returns an error if the path creates a circular include.
-func (c *RootCursor) AddInclude(path string) error {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return fmt.Errorf("failed to resolve path %q: %w", path, err)
-	}
-
+func (c *RootCursor) AddInclude(includePath string) error {
 	if c.current == nil {
 		return errors.New("IncludesCursor#Add: unable to push new include, current is nil")
+	}
+
+	// Resolve relative paths against the directory of the current file.
+	if !filepath.IsAbs(includePath) {
+		includePath = filepath.Join(filepath.Dir(c.current.Path), includePath)
+	}
+	absPath, err := filepath.Abs(includePath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve path %q: %w", includePath, err)
 	}
 	if c.visited[absPath] {
 		return fmt.Errorf("%s:%d:%d: %s", c.current.Path, c.current.lineOffset, c.current.charOffset, "circular include detected")
@@ -107,50 +103,36 @@ func (c *RootCursor) NextInclude() bool {
 }
 
 // GetSection returns the section for the given name (case-insensitive),
-// or nil if not found.
+// or nil if not found. Delegates to the underlying IniFile.
 func (c *RootCursor) GetSection(name string) *Section {
-	s, ok := c.sections[strings.ToLower(name)]
-	if !ok {
+	if c.File == nil {
 		return nil
 	}
-	return s
+	return c.File.GetSection(name)
 }
 
 // AddSection creates or reopens a section with the given name.
-// The name is normalized to lowercase per the PGINI spec. An empty name
-// or "default" refers to the default section (stored as empty string).
-// It returns an error if name is not a valid PGINI identifier.
+// Delegates to the underlying IniFile for validation, normalization,
+// and storage.
 func (c *RootCursor) AddSection(name string) (*Section, error) {
-	lower := strings.ToLower(name)
-
-	// "default" is the alias for the unnamed default section.
-	if lower == "default" {
-		lower = ""
+	if c.File == nil {
+		return nil, errors.New("RootCursor: File is nil")
 	}
-
-	// Validate non-empty names as identifiers.
-	if lower != "" && !identifierRe.MatchString(lower) {
-		return nil, fmt.Errorf("invalid section name %q: must match [A-Za-z_][A-Za-z0-9_.\\-]*", name)
-	}
-
-	if s, ok := c.sections[lower]; ok {
-		return s, nil
-	}
-	s := &Section{
-		Name:   lower,
-		params: make(map[string]*Param),
-	}
-	c.sections[lower] = s
-	c.sectionOrder = append(c.sectionOrder, lower)
-	return s, nil
+	return c.File.AddSection(name)
 }
 
 // String returns a human-readable position string.
 func (c *RootCursor) String() string {
-	if c.current == nil {
-		return fmt.Sprintf("RootCursor (%q): %q", path.Base(c.Path), c.Path)
+	name := ""
+	filePath := ""
+	if c.File != nil {
+		name = c.File.Name
+		filePath = c.File.Path
 	}
-	return fmt.Sprintf("RootCursor (%q): %q:%d:%d", path.Base(c.Path), c.current.Path, c.current.lineOffset+1, c.current.charOffset+1)
+	if c.current == nil {
+		return fmt.Sprintf("RootCursor (%q): %q", name, filePath)
+	}
+	return fmt.Sprintf("RootCursor (%q): %q:%d:%d", name, c.current.Path, c.current.lineOffset+1, c.current.charOffset+1)
 }
 
 // FileCursor tracks a parser position within a single file.

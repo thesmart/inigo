@@ -30,12 +30,14 @@ type IniFile struct {
 
 // NewIniFile creates a new empty IniFile for the given path.
 func NewIniFile(filePath string) *IniFile {
-	return &IniFile{
+	f := &IniFile{
 		Path:         filePath,
 		Name:         path.Base(filePath),
 		sections:     make(map[string]*Section),
 		sectionOrder: make([]string, 0),
 	}
+	f.AddSection("")
+	return f
 }
 
 // GetSection returns the section for the given name (case-insensitive),
