@@ -189,6 +189,24 @@ func (s *Section) GetValue(name string) (string, bool) {
 	return p.Value, true
 }
 
+// RemoveParam removes the parameter with the given key (case-insensitive).
+// It returns true if the parameter existed and was removed.
+func (s *Section) RemoveParam(name string) bool {
+	lower := strings.ToLower(name)
+	if _, ok := s.params[lower]; !ok {
+		return false
+	}
+
+	delete(s.params, lower)
+	for i, n := range s.paramOrder {
+		if n == lower {
+			s.paramOrder = append(s.paramOrder[:i], s.paramOrder[i+1:]...)
+			break
+		}
+	}
+	return true
+}
+
 // Params returns an iterator over parameters in insertion order.
 func (s *Section) Params() iter.Seq2[int, *Param] {
 	return func(yield func(int, *Param) bool) {
