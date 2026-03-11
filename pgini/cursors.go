@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // identifierRe validates PGINI identifiers: [A-Za-z_][A-Za-z0-9_.\-]*
@@ -51,12 +52,12 @@ func NewRootCursor(filePath string) (*RootCursor, error) {
 			Path:       absPath,
 			contents:   strings.Split(string(contents), "\n"),
 			lineOffset: 0,
-			charOffset: 0,
+			byteOffset: 0,
 		},
 		stack:   make([]*FileCursor, 0),
 		visited: make(map[string]bool),
 	}
-	c.visited[absPath] = true
+	c.AddInclude(absPath)
 	return c, nil
 }
 
@@ -77,7 +78,7 @@ func (c *RootCursor) AddInclude(includePath string) error {
 		return fmt.Errorf("failed to resolve path %q: %w", includePath, err)
 	}
 	if c.visited[absPath] {
-		return fmt.Errorf("%s:%d:%d: %s", c.current.Path, c.current.lineOffset, c.current.charOffset, "circular include detected")
+		return fmt.Errorf("%s:%d:%d: %s", c.current.Path, c.current.lineOffset, c.current.byteOffset, "circular include detected")
 	}
 
 	next, err := NewFileCursor(absPath)
@@ -92,33 +93,14 @@ func (c *RootCursor) AddInclude(includePath string) error {
 
 // NextInclude pops the next included file from the stack and makes it current.
 // It returns false when the stack is empty.
-func (c *RootCursor) NextInclude() bool {
+func (c *RootCursor) NextInclude() *FileCursor {
 	n := len(c.stack)
 	if n == 0 {
-		return false
+		return nil
 	}
 	c.current = c.stack[n-1]
 	c.stack = c.stack[:n-1]
-	return true
-}
-
-// GetSection returns the section for the given name (case-insensitive),
-// or nil if not found. Delegates to the underlying IniFile.
-func (c *RootCursor) GetSection(name string) *Section {
-	if c.File == nil {
-		return nil
-	}
-	return c.File.GetSection(name)
-}
-
-// AddSection creates or reopens a section with the given name.
-// Delegates to the underlying IniFile for validation, normalization,
-// and storage.
-func (c *RootCursor) AddSection(name string) (*Section, error) {
-	if c.File == nil {
-		return nil, errors.New("RootCursor: File is nil")
-	}
-	return c.File.AddSection(name)
+	return c.current
 }
 
 // String returns a human-readable position string.
@@ -132,7 +114,7 @@ func (c *RootCursor) String() string {
 	if c.current == nil {
 		return fmt.Sprintf("RootCursor (%q): %q", name, filePath)
 	}
-	return fmt.Sprintf("RootCursor (%q): %q:%d:%d", name, c.current.Path, c.current.lineOffset+1, c.current.charOffset+1)
+	return fmt.Sprintf("RootCursor (%q): %q:%d:%d", name, c.current.Path, c.current.lineOffset+1, c.current.byteOffset+1)
 }
 
 // FileCursor tracks a parser position within a single file.
@@ -140,7 +122,7 @@ type FileCursor struct {
 	Path       string
 	contents   []string
 	lineOffset int // 0-indexed
-	charOffset int // 0-indexed
+	byteOffset int // 0-indexed
 }
 
 // NewFileCursor reads the file at path and returns a new FileCursor positioned
@@ -171,33 +153,35 @@ func (c *FileCursor) GetLine() (string, bool) {
 
 // NextLine advances to the next line and resets the character offset.
 // It returns false if already at the last line.
-func (c *FileCursor) NextLine() bool {
+func (c *FileCursor) NextLine() (string, bool) {
 	if c.lineOffset+1 >= len(c.contents) {
-		return false
+		return "", false
 	}
 	c.lineOffset++
-	c.charOffset = 0
-	return true
+	c.byteOffset = 0
+	return c.GetLine()
 }
 
 // NextChar advances the character offset within the current line.
 // It returns false if already at the last character.
-func (c *FileCursor) NextChar() bool {
+func (c *FileCursor) NextChar() (rune, bool) {
 	if c.lineOffset < 0 || c.lineOffset >= len(c.contents) {
-		return false
+		return 0, false
 	}
 
 	line := c.contents[c.lineOffset]
-	if c.charOffset+1 >= len(line) {
-		return false
+	if c.byteOffset >= len(line) {
+		return 0, false
 	}
 
-	c.charOffset++
-	return true
+	r, size := utf8.DecodeRuneInString(line[c.byteOffset:])
+	c.byteOffset += size
+
+	return r, true
 }
 
 // String returns a human-readable position string.
 func (c *FileCursor) String() string {
 	// Output adjusts 0-indexed to 1-indexed
-	return fmt.Sprintf("FileCursor: %q:%d:%d", c.Path, c.lineOffset+1, c.charOffset+1)
+	return fmt.Sprintf("FileCursor: %q:%d:%d", c.Path, c.lineOffset+1, c.byteOffset+1)
 }

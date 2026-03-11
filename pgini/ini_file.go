@@ -1,7 +1,7 @@
 // Defines the parsed, intermediate data representation of an INI configuration
 // file that follows the PGINI standard.
 //
-// See reference/pgini-agents.md for the specification this package implements.
+// See [pgini-agents.md](../reference/pgini-agents.md) for the specification this package implements.
 // This is the root PGINI implementation: other source files in the package
 // should change to match it, but this file should not change to match others.
 
