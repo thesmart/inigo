@@ -12,7 +12,6 @@ import (
 	"iter"
 	"path"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -48,7 +47,11 @@ func NewIniFile(filePath string) (*IniFile, error) {
 // GetSection returns the section for the given name (case-insensitive),
 // or nil if not found.
 func (f *IniFile) GetSection(name string) *Section {
-	s, ok := f.sections[strings.ToLower(name)]
+	lower := strings.ToLower(name)
+	if lower == "default" {
+		lower = ""
+	}
+	s, ok := f.sections[lower]
 	if !ok {
 		return nil
 	}
@@ -136,6 +139,10 @@ type Section struct {
 	paramOrder []string
 }
 
+// identifierRe validates PGINI identifiers per the spec grammar:
+// identifier ::= letter ( letter | digit )* where letter = [a-zA-Z_], digit = [0-9]
+var identifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
 // NewSection creates a new empty Section with the given name.
 // The name is normalized to lowercase. An empty name or "default" refers to
 // the default section (stored as empty string).
@@ -146,7 +153,7 @@ func NewSection(name string) (*Section, error) {
 		lower = ""
 	}
 	if lower != "" && !identifierRe.MatchString(lower) {
-		return nil, fmt.Errorf("invalid section name %q: must match [A-Za-z_][A-Za-z0-9_.\\-]*", name)
+		return nil, fmt.Errorf("invalid section name %q: must match [A-Za-z_][A-Za-z0-9_]*", name)
 	}
 	return &Section{
 		Name:   lower,
@@ -161,7 +168,7 @@ func NewSection(name string) (*Section, error) {
 func (s *Section) SetParam(name string, value string) (*Param, error) {
 	lower := strings.ToLower(name)
 	if !identifierRe.MatchString(lower) {
-		return nil, fmt.Errorf("invalid parameter key %q: must match [A-Za-z_][A-Za-z0-9_.\\-]*", name)
+		return nil, fmt.Errorf("invalid parameter key %q: must match [A-Za-z_][A-Za-z0-9_]*", name)
 	}
 
 	if p, ok := s.params[lower]; ok {
@@ -238,6 +245,9 @@ func (s *Section) String() string {
 func (s *Section) MarshalIni() ([]byte, error) {
 	var b strings.Builder
 	if s.Name != "" {
+		if !identifierRe.MatchString(s.Name) {
+			return nil, fmt.Errorf("invalid section name %q: must match [A-Za-z_][A-Za-z0-9_]*", s.Name)
+		}
 		fmt.Fprintf(&b, "[%s]\n", s.Name)
 	}
 	for _, key := range s.paramOrder {
@@ -263,7 +273,7 @@ type Param struct {
 func NewParam(name string, value string) (*Param, error) {
 	lower := strings.ToLower(name)
 	if !identifierRe.MatchString(lower) {
-		return nil, fmt.Errorf("invalid parameter key %q: must match [A-Za-z_][A-Za-z0-9_.\\-]*", name)
+		return nil, fmt.Errorf("invalid parameter key %q: must match [A-Za-z_][A-Za-z0-9_]*", name)
 	}
 	return &Param{
 		Name:  lower,
@@ -278,18 +288,55 @@ func (p *Param) String() string {
 
 // unquotedValueRe matches values that can appear unquoted in PGINI output.
 // Per the grammar: unquoted-value ::= safe-char+ where safe-char is
-// letter | digit | [_.\-]. This covers booleans (true, false, on, off,
-// yes, no, 1, 0), integers (100, 0xFF, 077), and floats (1.5, 0.001).
-var unquotedValueRe = regexp.MustCompile(`^[a-zA-Z0-9_.\-]+$`)
+// letter | digit | [_.\-:/+]. This covers booleans (true, false, on, off,
+// yes, no, 1, 0), integers (100, 0xFF, +8kB, -1), floats (1.5, 0.001),
+// and path-like values (/usr/local/bin, http://example.com).
+var unquotedValueRe = regexp.MustCompile(`^[a-zA-Z0-9_.\-:/+]+$`)
 
 // MarshalIni implements encoding.TextMarshaler. It produces a single PGINI
 // parameter line: "key = value". Values matching safe-char+ (booleans,
 // integers, floats, simple identifiers) are written unquoted. All other
-// values are single-quoted with \' and \\ escaping.
+// values are single-quoted with PGINI escape sequences.
 func (p *Param) MarshalIni() ([]byte, error) {
+	if !identifierRe.MatchString(p.Name) {
+		return nil, fmt.Errorf("invalid parameter key %q: must match [A-Za-z_][A-Za-z0-9_]*", p.Name)
+	}
 	if unquotedValueRe.MatchString(p.Value) {
 		return fmt.Appendf(nil, "%s = %s", p.Name, p.Value), nil
 	}
-	escaped := strconv.Quote(p.Value)
-	return fmt.Appendf(nil, "%s = '%s'", p.Name, escaped), nil
+	return fmt.Appendf(nil, "%s = '%s'", p.Name, pginiEscape(p.Value)), nil
+}
+
+// pginiEscape encodes a string using PGINI single-quoted escape sequences.
+// Per the spec: \\ (backslash), \' (single quote), \b \f \n \r \t (named
+// control chars), and \OOO octal escapes for other control characters
+// (U+0000–U+001F, U+007F).
+func pginiEscape(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case '\\':
+			b.WriteString(`\\`)
+		case '\'':
+			b.WriteString(`\'`)
+		case '\b':
+			b.WriteString(`\b`)
+		case '\f':
+			b.WriteString(`\f`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\t':
+			b.WriteString(`\t`)
+		default:
+			if r <= 0x1F || r == 0x7F {
+				fmt.Fprintf(&b, `\%03o`, r)
+			} else {
+				b.WriteRune(r)
+			}
+		}
+	}
+	return b.String()
 }

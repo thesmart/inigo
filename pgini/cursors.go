@@ -13,13 +13,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"unicode/utf8"
 )
-
-// identifierRe validates PGINI identifiers: [A-Za-z_][A-Za-z0-9_.\-]*
-var identifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.\-]*$`)
 
 // RootCursor is a "start-before-first" iterator over a PGINI file and the tree
 // of included files in pre-order. Call `NextInclude()` on a new FileCursor
