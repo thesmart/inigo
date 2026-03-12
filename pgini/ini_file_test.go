@@ -9,7 +9,7 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestNewIniFile(t *testing.T) {
-	p := testPath("app.conf")
+	p := nonExistingPath("app.conf")
 	f, err := NewIniFile(p)
 	if err != nil {
 		t.Fatalf("NewIniFile: unexpected error: %v", err)
@@ -35,7 +35,7 @@ func TestNewIniFile(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIniFile_GetSection_CaseInsensitive(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestIniFile_GetSection_CaseInsensitive(t *testing.T) {
 }
 
 func TestIniFile_GetSection_DefaultAlias(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestIniFile_GetSection_DefaultAlias(t *testing.T) {
 }
 
 func TestIniFile_GetSection_NotFound(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestIniFile_GetSection_NotFound(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIniFile_AddSection_ReopensExisting(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestIniFile_AddSection_ReopensExisting(t *testing.T) {
 }
 
 func TestIniFile_AddSection_DefaultAlias(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestIniFile_AddSection_DefaultAlias(t *testing.T) {
 }
 
 func TestIniFile_AddSection_InvalidName(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestIniFile_AddSection_InvalidName(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIniFile_RemoveSection(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestIniFile_RemoveSection(t *testing.T) {
 }
 
 func TestIniFile_RemoveSection_DefaultAlias(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestIniFile_RemoveSection_DefaultAlias(t *testing.T) {
 }
 
 func TestIniFile_RemoveSection_NotFound(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestIniFile_RemoveSection_NotFound(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIniFile_Sections_InsertionOrder(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestIniFile_Sections_InsertionOrder(t *testing.T) {
 }
 
 func TestIniFile_Sections_EarlyBreak(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestIniFile_Sections_EarlyBreak(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIniFile_String(t *testing.T) {
-	f, err := NewIniFile(testPath("app.conf"))
+	f, err := NewIniFile(nonExistingPath("app.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +250,7 @@ func TestIniFile_String(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIniFile_MarshalIni_DefaultOnly(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestIniFile_MarshalIni_DefaultOnly(t *testing.T) {
 }
 
 func TestIniFile_MarshalIni_MultipleSections(t *testing.T) {
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -744,7 +744,7 @@ func TestIdentifierRe(t *testing.T) {
 
 func TestIniFile_MarshalIni_ErrorPropagation(t *testing.T) {
 	// Construct a file with an invalid section name to trigger marshal error.
-	f, err := NewIniFile(testPath("f.conf"))
+	f, err := NewIniFile(nonExistingPath("f.conf"))
 	if err != nil {
 		t.Fatal(err)
 	}

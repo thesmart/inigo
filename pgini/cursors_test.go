@@ -53,7 +53,7 @@ func TestNewRootCursor(t *testing.T) {
 }
 
 func TestNewRootCursor_FileNotFound(t *testing.T) {
-	_, err := NewRootCursor(testPath("file.conf"))
+	_, err := NewRootCursor(nonExistingPath("file.conf"))
 	if err == nil {
 		t.Error("NewRootCursor should return error for non-existent file")
 	}
@@ -164,7 +164,7 @@ func TestRootCursor_AddInclude_FileNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = rc.AddInclude(testPath("missing.conf"))
+	err = rc.AddInclude(nonExistingPath("missing.conf"))
 	if err == nil {
 		t.Error("AddInclude should error for non-existent file")
 	}
@@ -318,7 +318,7 @@ func TestNewFileCursor(t *testing.T) {
 }
 
 func TestNewFileCursor_FileNotFound(t *testing.T) {
-	_, err := NewFileCursor(testPath("file.conf"))
+	_, err := NewFileCursor(nonExistingPath("file.conf"))
 	if err == nil {
 		t.Error("NewFileCursor should return error for non-existent file")
 	}

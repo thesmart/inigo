@@ -40,6 +40,8 @@ _BE WARY:_ if your reasoning flows from code outward rather than from the user i
 | `pgini/ini_file_test.go` | `pgini/ini_file.go` | [ini_file_test](./references/ini_file_test.md) |
 | `pgini/cursors_test.go`  | `pgini/cursors.go`  | [cursors_test](./references/cursors_test.md)   |
 
+If needing to test a dir or file that doesn't exist, always use `nonExistingPath()` in [pgini/common_test.go](../../../pgini/common_test.go).
+
 ## Instructions
 
 1. Read the reference file for the test target from the table above.
