@@ -169,8 +169,8 @@ func (c *FileCursor) NextLine() (string, bool) {
 // NextChar advances the character offset within the current line.
 // It returns false if already at the last character.
 func (c *FileCursor) NextChar() (rune, bool) {
-	line, err := c.GetLine()
-	if err {
+	line, ok := c.GetLine()
+	if !ok {
 		return 0, false
 	}
 
