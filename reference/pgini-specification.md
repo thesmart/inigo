@@ -135,8 +135,8 @@ character set. Here are the rules for escaping:
 
 - single-quote `'`, i.e. `\'` or `''`
 - backslash, i.e. `\` as `\\`
-- control characters use C-style backslash escapes: `\a` (bell), `\b` (backspace), `\f` (form feed),
-  `\n` (newline), `\r` (carriage return), `\t` (tab); all other control characters (U+0001–U+001F,
+- control characters use C-style backslash escapes: `\b` (backspace), `\f` (form feed), `\n`
+  (newline), `\r` (carriage return), `\t` (tab); all other control characters (U+0001–U+001F,
   U+007F) use octal encoding`\OOO` (1–3 octal digits)
 
 ### Include Directives
@@ -173,6 +173,9 @@ in the following ways:
 
 1. Identifiers: PGINI recognizes ASCII-only vs PG's accepted byte-range `\200-\377`
 2. Include directives: use quoted paths (e.g. `include '<PATH>'`) vs PG optionally quoted paths
+3. PG's uses `#` as comment delimiter and `=` as parameter identifier/value delimiter. PGINI
+   supports these (preferred), but also supports `;` and `:` respectively.
+4. PGINI doesn't have built-in support for expontent numbers or types (e.g `kb`, `MB`)
 
 ## PGINI Grammar
 
@@ -192,12 +195,12 @@ include        ::= ( 'include'
                    | 'include_dir' ) WSP+ quoted-path WSP* comment? EOL
 
 key            ::= identifier
-identifier     ::= letter ( letter | digit | [_.\-] )*
+identifier     ::= letter ( letter | digit )*
 separator      ::= [=:]
 value          ::= quoted-value | unquoted-value
 
 quoted-value   ::= "'" (print-char | escape-seq)* "'"
-escape-seq     ::= "\\" | "\'" | "''" | "\a" | "\b" | "\f" | "\n" | "\r" | "\t" | octal-escape
+escape-seq     ::= "\\" | "\'" | "''" | "\b" | "\f" | "\n" | "\r" | "\t" | octal-escape
 octal-escape   ::= "\" octal-digit octal-digit? octal-digit?
 octal-digit    ::= [0-7]
 
@@ -210,10 +213,10 @@ rel-path       ::= path-segment ( '/' path-segment )*
 path-segment   ::= segment-char+
 segment-char   ::= [^#x00-#x1F #x27 #x7F /]
 
-letter         ::= [a-zA-Z]
+letter         ::= [a-zA-Z_]
 digit          ::= [0-9]
 print-char     ::= [^#x00-#x1F #x27 #x5C #x7F]
-safe-char      ::= letter | digit | [_.\-:/]
+safe-char      ::= letter | digit | [_.\-:/+]
 
 WSP            ::= [#x20 #x09]
 EOL            ::= #xD #xA | #xA | #xD
