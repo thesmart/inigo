@@ -21,8 +21,9 @@ import (
 // identifierRe validates PGINI identifiers: [A-Za-z_][A-Za-z0-9_.\-]*
 var identifierRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.\-]*$`)
 
-// RootCursor is the root cursor for iterating over a PGINI file and the tree
-// of included files in pre-order.
+// RootCursor is a "start-before-first" iterator over a PGINI file and the tree
+// of included files in pre-order. Call `NextInclude()` on a new FileCursor
+// before attempting to read.
 type RootCursor struct {
 	// File holds the parsed sections, path, and ordering.
 	File *IniFile
@@ -117,7 +118,9 @@ func (c *RootCursor) String() string {
 	return fmt.Sprintf("RootCursor (%q): %q:%d:%d", name, c.current.Path, c.current.lineOffset+1, c.current.byteOffset+1)
 }
 
-// FileCursor tracks a parser position within a single file.
+// FileCursor is a "start-before-first" iterator that iterates over
+// line and character positions within a single file. Call `NextLine()`
+// and `NextChar()` on a new FileCursor before attempting to read.
 type FileCursor struct {
 	Path       string
 	contents   []string
@@ -133,7 +136,7 @@ func NewFileCursor(path string) (*FileCursor, error) {
 		return nil, fmt.Errorf("failed to resolve path %q: %w", path, err)
 	}
 
-	c := &FileCursor{Path: absPath}
+	c := &FileCursor{Path: absPath, lineOffset: -1, byteOffset: -1}
 	contents, err := os.ReadFile(absPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %q: %w", absPath, err)
@@ -165,12 +168,18 @@ func (c *FileCursor) NextLine() (string, bool) {
 // NextChar advances the character offset within the current line.
 // It returns false if already at the last character.
 func (c *FileCursor) NextChar() (rune, bool) {
-	if c.lineOffset < 0 || c.lineOffset >= len(c.contents) {
+	line, err := c.GetLine()
+	if err {
 		return 0, false
 	}
 
-	line := c.contents[c.lineOffset]
+	if c.byteOffset < 0 {
+		// first call
+		c.byteOffset = 0
+	}
+
 	if c.byteOffset >= len(line) {
+		// no more bytes to read
 		return 0, false
 	}
 
