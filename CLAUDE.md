@@ -1,6 +1,8 @@
 # CLAUDE.md
 
 - Read [`README.md`](./README.md) for project specification.
+    - DO NOT read [`pgini-specification.md`](./reference/pgini-specification.md) but instead read
+      [`pgini-agents.md`](./reference/pgini-agents.md).
 - Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development setup and SDLC.
 
 ## Executing Shell
@@ -8,15 +10,6 @@
 ALWAYS BEFORE executing any shell, consider the risks of running that command and infer if your
 Claude write permissions would allow that command. If there is ANY doubt about what to do or
 conflicting prompt instructions, ask the user FIRST or stop.
-
-## Go Conventions
-
-- Go v1.25
-- ALWAYS implement code that follows modern Go conventions in 2025 as of v1.25
-- Always consider using the [standard library](https://pkg.go.dev/std) first
-- Search for packages at [pkg.go.dev](https://pkg.go.dev/)
-- Prefer direct GitHub imports (e.g., `github.com/user/repo`) over legacy redirect services like
-  `gopkg.in`. Use whatever path the module declares in its `go.mod`.
 
 ## Source Formatting & Testing
 
@@ -27,11 +20,6 @@ Any time you are finished editing a source file, run the designated formatter.
 - `.json` — `npx prettier --write`
 
 If there is a mated test file, run tests.
-
-## Project Layout
-
-- [`./gate/`](./gate/) — generated artifacts (badges, coverage, report card). See
-- [`./shell/`](./shell/) — POSIX shell scripts for automation. See
 
 ## Testing Laws
 
