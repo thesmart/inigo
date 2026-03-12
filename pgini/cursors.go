@@ -47,8 +47,13 @@ func NewRootCursor(filePath string) (*RootCursor, error) {
 		return nil, fmt.Errorf("failed to read %q: %w", absPath, err)
 	}
 
+	f, err := NewIniFile(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct IniFile %q: %w", absPath, err)
+	}
+
 	c := &RootCursor{
-		File: NewIniFile(absPath),
+		File: f,
 		current: &FileCursor{
 			Path:       absPath,
 			contents:   strings.Split(string(contents), "\n"),
