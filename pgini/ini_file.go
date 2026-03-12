@@ -29,15 +29,20 @@ type IniFile struct {
 }
 
 // NewIniFile creates a new empty IniFile for the given path.
-func NewIniFile(filePath string) *IniFile {
+func NewIniFile(filePath string) (*IniFile, error) {
 	f := &IniFile{
 		Path:         filePath,
 		Name:         path.Base(filePath),
 		sections:     make(map[string]*Section),
 		sectionOrder: make([]string, 0),
 	}
-	f.AddSection("")
-	return f
+
+	_, err := f.AddSection("")
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
 
 // GetSection returns the section for the given name (case-insensitive),
