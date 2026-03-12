@@ -31,8 +31,6 @@ For over two decades, PostgreSQL has shipped with
 specification, but it is popular and battle-tested. It has clear and simple rule about quoting,
 types, includes, and comments.
 
-This specification defines a simple super-set of features on top of PostgreSQL's conventions.
-
 ## PGINI Configuration Standard
 
 PGINI (pronounced: "pee-gee-nee"):
@@ -129,12 +127,17 @@ explains how datatypes are expressed in the INI:
 | Integer | `100` `0xFF` `077`                           | Decimal, hex (`0x`), octal (`0`) prefixes      |
 | Float   | `1.5` `0.001`                                | Standard decimal notation                      |
 
-**String quoting rules:** single-quotes required for values with non-latin-alphanumeric characters,
-e.g. `#`, `;`, or any special chars. Use escaping for:
+**Unquoted values:** Simple values containing latin alpha-numeric chars and `[-._:/]` are not
+required to be enclosed in quotes.
+
+**Quoted values:** Enclose values in single-quotes (e.g. `'value'`) allows for the complete UTF-8
+character set. Here are the rules for escaping:
 
 - single-quote `'`, i.e. `\'` or `''`
 - backslash, i.e. `\` as `\\`
-- any control characters, e.g. `\n`, `\t` etc.
+- control characters use C-style backslash escapes: `\a` (bell), `\b` (backspace), `\f` (form feed),
+  `\n` (newline), `\r` (carriage return), `\t` (tab); all other control characters (U+0001–U+001F,
+  U+007F) use octal encoding`\OOO` (1–3 octal digits)
 
 ### Include Directives
 
@@ -162,6 +165,15 @@ delimiter. Comment delimiters cannot exist within quoted text regions.
 - Boolean literals: `on`, `off`, `true`, `false`, `yes`, `no`, `1`, `0`
 - Include directives: `include`, `include_if_exists`, `include_dir`
 
+## Breakng Changes
+
+PGINI implementation differs from
+[PostgreSQL implementation](https://raw.githubusercontent.com/postgres/postgres/refs/heads/master/src/backend/utils/misc/guc-file.l)
+in the following ways:
+
+1. Identifiers: PGINI recognizes ASCII-only vs PG's accepted byte-range `\200-\377`
+2. Include directives: use quoted paths (e.g. `include '<PATH>'`) vs PG optionally quoted paths
+
 ## PGINI Grammar
 
 This grammar formally defines what sequences of characters are valid:
@@ -184,7 +196,11 @@ identifier     ::= letter ( letter | digit | [_.\-] )*
 separator      ::= [=:]
 value          ::= quoted-value | unquoted-value
 
-quoted-value   ::= "'" ( print-char | "''" | "\'" )* "'"
+quoted-value   ::= "'" (print-char | escape-seq)* "'"
+escape-seq     ::= "\\" | "\'" | "''" | "\a" | "\b" | "\f" | "\n" | "\r" | "\t" | octal-escape
+octal-escape   ::= "\" octal-digit octal-digit? octal-digit?
+octal-digit    ::= [0-7]
+
 unquoted-value ::= safe-char+
 
 quoted-path    ::= "'" ( abs-path | rel-path ) "'"
@@ -196,8 +212,8 @@ segment-char   ::= [^#x00-#x1F #x27 #x7F /]
 
 letter         ::= [a-zA-Z]
 digit          ::= [0-9]
-print-char     ::= [^#x00-#x1F #x27 #x7F]
-safe-char      ::= letter | digit | [_.\-]
+print-char     ::= [^#x00-#x1F #x27 #x5C #x7F]
+safe-char      ::= letter | digit | [_.\-:/]
 
 WSP            ::= [#x20 #x09]
 EOL            ::= #xD #xA | #xA | #xD

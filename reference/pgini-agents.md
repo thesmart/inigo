@@ -26,12 +26,16 @@ last wins.
 | Integer | `100` `0xFF` `077` (decimal, hex, octal)                        |
 | Float   | `1.5` `0.001`                                                   |
 
-**Quoting:** single-quotes required for values with non-latin-alphanumeric characters, e.g. `#`,
-`;`, or any special chars. Use escaping for:
+**Unquoted values:** Simple values containing latin alpha-numeric chars and `[-._:/]` are not
+required to be enclosed in quotes.
+
+**Quoted values:** Enclose values in single-quotes to all for UTF-8 characters.
 
 - single-quote `'`, i.e. `\'` or `''`
-- backslash, i.e. `\` as `\\`
-- any control characters, e.g. `\n`, `\t` etc.
+- backslash `\` as `\\`
+- control characters use C-style backslash escapes: `\a` (bell), `\b` (backspace), `\f` (form feed),
+  `\n` (newline), `\r` (carriage return), `\t` (tab); all other control characters (U+0000–U+001F,
+  U+007F) use octal encoding `\OOO` (1–3 octal digits)
 
 ## Include Directives
 
@@ -60,7 +64,10 @@ key            ::= identifier
 identifier     ::= letter (letter | digit | [_.\-])*
 separator      ::= [=:]
 value          ::= quoted-value | unquoted-value
-quoted-value   ::= "'" (print-char | "''" | "\'")* "'"
+quoted-value   ::= "'" (print-char | escape-seq)* "'"
+escape-seq     ::= "\\" | "\'" | "''" | "\a" | "\b" | "\f" | "\n" | "\r" | "\t" | octal-escape
+octal-escape   ::= "\" octal-digit octal-digit? octal-digit?
+octal-digit    ::= [0-7]
 unquoted-value ::= safe-char+
 quoted-path    ::= "'" (abs-path | rel-path) "'"
 pathname       ::= abs-path | rel-path
@@ -70,8 +77,8 @@ path-segment   ::= segment-char+
 segment-char   ::= [^#x00-#x1F #x27 #x7F /]
 letter         ::= [a-zA-Z]
 digit          ::= [0-9]
-print-char     ::= [^#x00-#x1F #x27 #x7F]
-safe-char      ::= letter | digit | [_.\-]
+print-char     ::= [^#x00-#x1F #x27 #x5C #x7F]
+safe-char      ::= letter | digit | [_.\-:/]
 WSP            ::= [#x20 #x09]
 EOL            ::= #xD #xA | #xA | #xD
 any-char       ::= [^#x00 #xA #xD]
