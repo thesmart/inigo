@@ -88,7 +88,7 @@ A parameter is a `key = value` pair within a section.
 - `=` - key/value separator (PostgreSQL convention), whitespace around it is ignored
 - `:` - alternative key/value separator, whitespace around it is ignored
 - Duplicate parameter: last occurrence wins
-- Keys are case-insensitive identifiers (`[A-Za-z_][A-Za-z0-9_.\-]*`)
+- Keys are case-insensitive identifiers, see [PGINI Grammar](#pgini-grammar) for details
 - Missing value (key with no separator or value) is the zero-value for the type: `0`, `false`, or
   empty-string
 - Leading and trailing whitespace around values is ignored (values are trimmed)
@@ -129,25 +129,24 @@ explains how datatypes are expressed in the INI:
 | Integer | `100` `0xFF` `077`                           | Decimal, hex (`0x`), octal (`0`) prefixes      |
 | Float   | `1.5` `0.001`                                | Standard decimal notation                      |
 
-**String quoting rules:**
+**String quoting rules:** single-quotes required for values with non-latin-alphanumeric characters,
+e.g. `#`, `;`, or any special chars. Use escaping for:
 
-- Unquoted: sufficient for simple values
-- Single-quoted (`'...'`): required when value contains spaces, `#`, `;`, or special chars
-- Escaping single quotes: `\'` (backslash) or `''` (double)
-- Backslash escapes: `\\` for literal backslash inside quoted values
-- Double quotes (`"..."`) may appear **inside** single-quoted strings for sub-quoting (e.g.,
-  `search_path = '"$user", public'`)
+- single-quote `'`, i.e. `\'` or `''`
+- backslash, i.e. `\` as `\\`
+- any control characters, e.g. `\n`, `\t` etc.
 
 ### Include Directives
 
-- `include 'filename'` - include another INI file
-- `include_if_exists 'filename'` - include another INI file if it exists, otherwise ignore
-- `include_dir 'directory'` - include all `.conf` and `.pgini` files in directory processed in ascii
-  order, files starting with `.` are excluded
+- `include 'filepath'` - include another INI file
+- `include_if_exists 'filepath'` - include if exists, else skip
+- `include_dir 'dirpath'` - include all `.conf` in dir (ascii order, skip dotfiles)
 
-Included files are processed as if inserted into the configuration file at that point.
+Included files are processed as if inserted at the line of the include directive.
 
-Relative paths are resolved relative to the directory of the file containing the directive.
+Relative paths resolve from the containing file's directory.
+
+**Breaking Change:** PostgreSQL allows for unquoted paths; we require single-quoted paths.
 
 ### Comments
 

@@ -14,7 +14,7 @@ PGINI: PostgreSQL-compatible INI format. Mime: `text/x-pgini`. Encoding: UTF-8. 
 
 Format: `key = value` or `key : value` (one per line).
 
-**Keys:** case-insensitive identifiers matching `[A-Za-z_][A-Za-z0-9_.\-]*`.
+**Keys:** case-insensitive identifiers, see [PGINI Grammar](#pgini-grammar) for details.
 
 **Values:** whitespace-trimmed. Missing value = zero-value (`0`, `false`, or `""`). Duplicate keys:
 last wins.
@@ -26,15 +26,18 @@ last wins.
 | Integer | `100` `0xFF` `077` (decimal, hex, octal)                        |
 | Float   | `1.5` `0.001`                                                   |
 
-**Quoting:** single-quotes required for values with spaces, `#`, `;`, or special chars. Escape `'`
-as `\'` or `''`. Escape `\` as `\\`. Double-quotes allowed inside single-quoted strings (e.g.
-`'"$user", public'`).
+**Quoting:** single-quotes required for values with non-latin-alphanumeric characters, e.g. `#`,
+`;`, or any special chars. Use escaping for:
+
+- single-quote `'`, i.e. `\'` or `''`
+- backslash, i.e. `\` as `\\`
+- any control characters, e.g. `\n`, `\t` etc.
 
 ## Include Directives
 
-- `include 'path'` — include file
-- `include_if_exists 'path'` — include if exists, else skip
-- `include_dir 'dir'` — include all `.conf` in dir (ascii order, skip dotfiles)
+- `include 'filepath'` — include file
+- `include_if_exists 'filepath'` — include if exists, else skip
+- `include_dir 'dirpath'` — include all `.conf` in dir (ascii order, skip dotfiles)
 
 Relative paths resolve from the containing file's directory.
 
