@@ -34,3 +34,11 @@ If you need to modify or understanding the Task system, read
 - Consider popular, well tested packages w/ low dependencies via [pkg.go.dev](https://pkg.go.dev/)
 - Prefer direct GitHub imports (e.g., `github.com/user/repo`) over legacy redirect services like
   `gopkg.in`. Use whatever path the module declares in its `go.mod`.
+- Within a `.go` file, keep a struct and its code together and ordered:
+    - struct definition
+        1.  struct's constructor(s)
+        2.  struct's method(s)
+        3.  methods implementing built-in interfaces: `error`, `fmt.Stringer`, `fmt.GoStringer`,
+            `sort.Interface`, `io.Reader` / `io.Writer`, marshalers / unmarshalers, `io.Closer`
+- Always nil-check pointer and interface fields before dereferencing, even if current constructors
+  initialize them. The type system is the contract.
