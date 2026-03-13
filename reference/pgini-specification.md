@@ -160,22 +160,20 @@ delimiter. Comment delimiters cannot exist within quoted text regions.
 - `;` - alternative line comment (classic INI convention)
 - Anything after a comment delimiter is ignored until newline (`\n`) is reached
 
-### Reserved / Special Words
-
-- Boolean literals: `on`, `off`, `true`, `false`, `yes`, `no`, `1`, `0`
-- Include directives: `include`, `include_if_exists`, `include_dir`
-
 ## Breakng Changes
 
 PGINI implementation differs from
 [PostgreSQL implementation](https://raw.githubusercontent.com/postgres/postgres/refs/heads/master/src/backend/utils/misc/guc-file.l)
 in the following ways:
 
-1. Identifiers: PGINI recognizes ASCII-only vs PG's accepted byte-range `\200-\377`
+1. Identifiers: same as PG, except ASCII-only
 2. Include directives: use quoted paths (e.g. `include '<PATH>'`) vs PG optionally quoted paths
-3. PG's uses `#` as comment delimiter and `=` as parameter identifier/value delimiter. PGINI
-   supports these (preferred), but also supports `;` and `:` respectively.
-4. PGINI doesn't have built-in support for expontent numbers or types (e.g `kb`, `MB`)
+3. PGINI allows for `#` and `;` as comment delimiter, PG uses `#` only
+4. PGINI allows for `=` and `:` as parameter identifier/value delimiter, PG uses `=` only
+5. PGINI these boolean values:
+    - `true`: "t", "1", "true", "on", "y", "yes"
+    - `false`: "f", "0", "false", "off", "n", "no"
+6. PGINI doesn't have built-in support for expontent numbers or types (e.g `kb`, `MB`)
 
 ## PGINI Grammar
 

@@ -23,7 +23,7 @@ last wins.
 | ------- | --------------------------------------------------------------- |
 | Boolean | `true` `false` `on` `off` `yes` `no` `1` `0` (case-insensitive) |
 | String  | `simple_word` or `'quoted string'`                              |
-| Integer | `100` `0xFF` `+8kB` `-1` (decimal, hex; optional sign & unit)   |
+| Integer | `100` `0xFF` `-1` (decimal, hex, optional sign)                 |
 | Float   | `1.5` `0.001`                                                   |
 
 **Unquoted values:** Simple values containing latin alpha-numeric chars and `[-._:/+]` are not
@@ -49,6 +49,19 @@ Relative paths resolve from the containing file's directory.
 
 `#` or `;` starts a line comment. Everything after is ignored until newline. Comment delimiters
 inside quoted values are literal.
+
+## Breakng Changes
+
+PGINI implementation differs from PostgreSQL implementation:
+
+1. Identifiers: same as PG, except ASCII-only
+2. Include directives: use quoted paths (e.g. `include '<PATH>'`) vs PG optionally quoted paths
+3. PGINI allows for `#` and `;` as comment delimiter, PG uses `#` only
+4. PGINI allows for `=` and `:` as parameter identifier/value delimiter, PG uses `=` only
+5. PGINI uses these boolean values:
+    - `true`: "t", "1", "true", "on", "y", "yes"
+    - `false`: "f", "0", "false", "off", "n", "no"
+6. PGINI doesn't have built-in support for expontent numbers or types (e.g `kb`, `MB`)
 
 ## Grammar (EBNF)
 
