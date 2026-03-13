@@ -1,4 +1,4 @@
-// Marshaling encodes Go structs into PGINI sections using struct field tags.
+// Marshaling encodes Go structs into IniFile sections using struct field tags.
 //
 // Fields are mapped via `ini:"KEY"` tags. Fields without an `ini` tag or with
 // an empty tag value are skipped. For primitive types (string, bool, int*,
@@ -12,14 +12,14 @@ import (
 	"reflect"
 )
 
-// MarshalSection encodes the exported fields of s into the named section,
-// creating the section if it does not exist. s must be a pointer to a struct.
+// MarshalSection encodes the exported fields of `data` into the named section,
+// creating the section if it does not exist. `data` must be a pointer to a struct.
 // Fields are matched by their `ini:"KEY"` tag. Fields without an `ini` tag
 // or with an empty tag value are skipped.
-func (f *IniFile) MarshalSection(name string, v any) error {
-	rv := reflect.ValueOf(v)
+func (f *IniFile) MarshalSection(name string, data any) error {
+	rv := reflect.ValueOf(data)
 	if rv.Kind() != reflect.Pointer || rv.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("MarshalSection: v must be a pointer to a struct, got %T", v)
+		return fmt.Errorf("MarshalSection: data must be a pointer to a struct, got %T", data)
 	}
 	rv = rv.Elem()
 	rt := rv.Type()

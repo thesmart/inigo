@@ -1,4 +1,4 @@
-// Unmarshaling decodes PGINI sections into Go structs using struct field tags.
+// Unmarshaling decodes IniFile instances into Go structs using struct field tags.
 //
 // Fields are mapped via `ini:"KEY"` tags. Fields without an `ini` tag or with
 // an empty tag value are skipped. For primitive types (string, bool, int*,
@@ -16,13 +16,13 @@ import (
 )
 
 // UnmarshalSection decodes the named section's parameters into the exported
-// fields of s. s must be a pointer to a struct. Fields are matched by their
+// fields of `data`. `data` must be a pointer to a struct. Fields are matched by their
 // `ini:"KEY"` tag. Fields without an `ini` tag or with an empty tag value are
 // skipped. Parameters that do not match any field are ignored.
-func (f *IniFile) UnmarshalSection(name string, v any) error {
-	rv := reflect.ValueOf(v)
+func (f *IniFile) UnmarshalSection(name string, data any) error {
+	rv := reflect.ValueOf(data)
 	if rv.Kind() != reflect.Pointer || rv.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("UnmarshalSection: v must be a pointer to a struct, got %T", v)
+		return fmt.Errorf("UnmarshalSection: data must be a pointer to a struct, got %T", data)
 	}
 	rv = rv.Elem()
 	rt := rv.Type()
