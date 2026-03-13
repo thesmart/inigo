@@ -27,9 +27,13 @@ type RootCursor struct {
 	current *FileCursor
 	// Included files for pre-order traversal
 	stack []*FileCursor
-	// Prevents circular loops
-	visited map[string]bool
+	// Tracks how many times each file has been visited
+	visited map[string]int
 }
+
+// maxVisitCount is the maximum number of times a single file may be included
+// before the cursor treats it as a circular include.
+const maxVisitCount = 10
 
 // NewRootCursor reads the file at path and returns a new RootCursor.
 func NewRootCursor(filePath string) (*RootCursor, error) {
@@ -57,7 +61,7 @@ func NewRootCursor(filePath string) (*RootCursor, error) {
 			byteOffset: 0,
 		},
 		stack:   make([]*FileCursor, 0),
-		visited: make(map[string]bool),
+		visited: make(map[string]int),
 	}
 	c.AddInclude(absPath)
 	return c, nil
@@ -79,7 +83,7 @@ func (c *RootCursor) AddInclude(includePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to resolve path %q: %w", includePath, err)
 	}
-	if c.visited[absPath] {
+	if c.visited[absPath] >= maxVisitCount {
 		return fmt.Errorf("%s:%d:%d: %s", c.current.Path, c.current.lineOffset, c.current.byteOffset, "circular include detected")
 	}
 
@@ -88,7 +92,7 @@ func (c *RootCursor) AddInclude(includePath string) error {
 		return err
 	}
 	c.stack = append(c.stack, next)
-	c.visited[absPath] = true
+	c.visited[absPath]++
 
 	return nil
 }

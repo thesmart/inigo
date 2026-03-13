@@ -47,7 +47,7 @@ func TestNewRootCursor(t *testing.T) {
 	}
 	// The root file should already be in the visited set.
 	abs, _ := filepath.Abs(p)
-	if !rc.visited[abs] {
+	if rc.visited[abs] < 1 {
 		t.Error("root file should be in visited set")
 	}
 }
@@ -145,10 +145,19 @@ func TestRootCursor_AddInclude_Circular(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The root file is already visited; adding it again should error.
+	// The root file is already visited once. Adding it again should succeed
+	// until the visit count reaches maxVisitCount.
+	for i := 1; i < maxVisitCount; i++ {
+		err = rc.AddInclude(p)
+		if err != nil {
+			t.Fatalf("AddInclude #%d should succeed (under threshold), got: %v", i+1, err)
+		}
+	}
+
+	// The next add should exceed the threshold and error.
 	err = rc.AddInclude(p)
 	if err == nil {
-		t.Error("AddInclude should detect circular include")
+		t.Error("AddInclude should detect circular include after exceeding maxVisitCount")
 	}
 	if err != nil && !strings.Contains(err.Error(), "circular include detected") {
 		t.Errorf("error should mention circular include, got: %v", err)
