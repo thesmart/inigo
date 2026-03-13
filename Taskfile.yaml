@@ -1,5 +1,10 @@
 version: '3'
 
+includes:
+    example:
+        taskfile: ./examples/Taskfile.yaml
+        dir: ./examples
+
 vars:
     GATE_DIR: ./gate
     SHELL_DIR: ./shell
@@ -299,6 +304,10 @@ tasks:
     #     -
 
     # ---------------------------------------------------------------------------
+    # Examples (delegated to examples/Taskfile.yaml)
+    # ---------------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------------
     # Build
     # ---------------------------------------------------------------------------
 
@@ -375,6 +384,15 @@ tasks:
                 echo "  task check:goreportcard   Run goreportcard-cli and extract grade"
                 echo "  task check:coverage       Run test coverage to verify minimum standards"
                 echo "  task check:repo           Check that the repository is clean (read-only)"
+                echo ""
+                echo "Examples:"
+                echo "  task example              Run all examples"
+                echo "  task example:01           Run example: unmarshal struct"
+                echo "  task example:02           Run example: load and query"
+                echo "  task example:03           Run example: marshal struct"
+                echo "  task example:04           Run example: custom marshal"
+                echo ""
+                echo "  (examples are defined in examples/Taskfile.yaml)"
                 echo ""
                 echo "Build:"
                 echo "  task build                Build the inigo CLI binary"
