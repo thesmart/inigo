@@ -35,12 +35,15 @@ _BE WARY:_ if your reasoning flows from code outward rather than from the user i
 
 ## Existing Tests
 
-| Test file                | Source under test   | Reference                                      |
-| ------------------------ | ------------------- | ---------------------------------------------- |
-| `pgini/ini_file_test.go` | `pgini/ini_file.go` | [ini_file_test](./references/ini_file_test.md) |
-| `pgini/cursors_test.go`  | `pgini/cursors.go`  | [cursors_test](./references/cursors_test.md)   |
+| Test file                 | Source under test    | Reference                                                        |
+| ------------------------- | -------------------- | ---------------------------------------------------------------- |
+| `pgini/ini_file_test.go`  | `pgini/ini_file.go`  | [ini_file_test](./references/ini_file_test.md)                   |
+| `pgini/cursors_test.go`   | `pgini/cursors.go`   | [cursors_test](./references/cursors_test.md)                     |
+| `pgini/marshal_test.go`   | `pgini/marshal.go`   | [cursors_test](./references/cursors_test.md)                     |
+| `pgini/unmarshal_test.go` | `pgini/unmarshal.go` | [marshal_unmarshal_test](./references/marshal_unmarshal_test.md) |
 
-If needing to test a dir or file that doesn't exist, always use `nonExistingPath()` in [pgini/common_test.go](../../../pgini/common_test.go).
+If needing to test a dir or file that doesn't exist, always use `nonExistingPath()` in
+[pgini/common_test.go](../../../pgini/common_test.go).
 
 ## Instructions
 
