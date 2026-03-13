@@ -7,7 +7,7 @@ import (
 )
 
 // unitsDir is the base path for unit test data files.
-var unitsDir = filepath.Join("testdata", "units")
+var unitsDir = filepath.Join("testdata", "reader")
 
 // unitPath returns the absolute path for a testdata/units file.
 func unitPath(name string) string {
@@ -21,7 +21,7 @@ func unitPath(name string) string {
 // requireLoad loads a conf file and fails the test if it errors.
 func requireLoad(t *testing.T, name string) *IniFile {
 	t.Helper()
-	f, err := Load(unitPath(name))
+	f, err := Parse(unitPath(name))
 	if err != nil {
 		t.Fatalf("Load(%q): %v", name, err)
 	}
@@ -101,7 +101,7 @@ func TestLoad_01_Blank_WhitespaceOnly(t *testing.T) {
 	dir := t.TempDir()
 	content := "   \n\t\t\n \t \n"
 	path := writeTemp(t, dir, "ws.conf", content)
-	f, err := Load(path)
+	f, err := Parse(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -686,7 +686,7 @@ func TestLoad_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := Load(unitPath(tt.file))
+			_, err := Parse(unitPath(tt.file))
 			if err == nil {
 				t.Fatalf("Load(%q): expected error, got nil", tt.file)
 			}
@@ -732,12 +732,64 @@ func TestLoad_Errors_IncludePathControlChar(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
 			path := writeTemp(t, dir, "ctrl.conf", tt.content)
-			_, err := Load(path)
+			_, err := Parse(path)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
 			if !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("error = %q, want substring %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Load — generic Load[T] convenience function
+// ---------------------------------------------------------------------------
+
+func TestLoadGeneric_09_Numbers(t *testing.T) {
+	type Numbers struct {
+		Decimal    int     `ini:"decimal"`
+		Zero       int     `ini:"zero"`
+		Negative   int     `ini:"negative"`
+		Positive   int     `ini:"positive"`
+		Large      int     `ini:"large"`
+		HexLower   int     `ini:"hex_lower"`
+		HexUpper   int     `ini:"hex_upper"`
+		HexLong    int64   `ini:"hex_long"`
+		FloatSimp  float64 `ini:"float_simple"`
+		FloatSmall float64 `ini:"float_small"`
+		FloatNoLd  float64 `ini:"float_no_lead"`
+		FloatTrail float64 `ini:"float_trail"`
+	}
+
+	cfg, err := Load[Numbers](unitPath("09_numbers.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{"decimal", cfg.Decimal, 100},
+		{"zero", cfg.Zero, 0},
+		{"negative", cfg.Negative, -1},
+		{"positive", cfg.Positive, 1},
+		{"large", cfg.Large, 9999999},
+		{"hex_lower", cfg.HexLower, 0xff},
+		{"hex_upper", cfg.HexUpper, 0xFF},
+		{"hex_long", cfg.HexLong, int64(0xDEADBEEF)},
+		{"float_simple", cfg.FloatSimp, 1.5},
+		{"float_small", cfg.FloatSmall, 0.001},
+		{"float_no_lead", cfg.FloatNoLd, 0.5},
+		{"float_trail", cfg.FloatTrail, 1.0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %v, want %v", tt.name, tt.got, tt.want)
 			}
 		})
 	}

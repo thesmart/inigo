@@ -15,9 +15,25 @@ import (
 	"strings"
 )
 
-// Load parses the PGINI file at filePath (and any included files) and returns
+// Load parses the PGINI file at filePath and unmarshals the named section into
+// a new instance of T. T must be a struct with `ini:"KEY"` field tags.
+// Use an empty string for section to read the default (unnamed) section.
+func Load[T any](filePath string, section string) (*T, error) {
+	f, err := Parse(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var t T
+	if err := f.UnmarshalSection(section, &t); err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+// Parse parses the PGINI file at filePath (and any included files) and returns
 // a populated IniFile.
-func Load(filePath string) (*IniFile, error) {
+func Parse(filePath string) (*IniFile, error) {
 	rootCursor, err := NewRootCursor(filePath)
 	if err != nil {
 		return nil, err
