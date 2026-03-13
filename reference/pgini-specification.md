@@ -170,7 +170,7 @@ in the following ways:
 2. Include directives: use quoted paths (e.g. `include '<PATH>'`) vs PG optionally quoted paths
 3. PGINI allows for `#` and `;` as comment delimiter, PG uses `#` only
 4. PGINI allows for `=` and `:` as parameter identifier/value delimiter, PG uses `=` only
-5. PGINI these boolean values:
+5. PGINI uses these boolean values:
     - `true`: "t", "1", "true", "on", "y", "yes"
     - `false`: "f", "0", "false", "off", "n", "no"
 6. PGINI doesn't have built-in support for expontent numbers or types (e.g `kb`, `MB`)
