@@ -261,7 +261,7 @@ tasks:
             - |
                 sh {{.SHELL_DIR}}/badge.sh \
                   -o {{.GATE_DIR}}/coverage-badge.svg \
-                  -l "coverage" -m "{{.COV_PCT}}%25" -k "{{.COV_COLOR}}"
+                  -l "coverage" -m "{{.COV_PCT}}%" -k "{{.COV_COLOR}}"
             - |
                 sh {{.SHELL_DIR}}/badge.sh \
                   -o {{.GATE_DIR}}/go-report-badge.svg \
