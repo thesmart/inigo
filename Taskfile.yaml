@@ -331,9 +331,8 @@ tasks:
     clean:
         desc: Remove generated artifacts
         cmds:
-            - rm -f {{.GATE_DIR}}/*.txt
             - rm -f {{.GATE_DIR}}/*.profile
-            - rm -f {{.GATE_DIR}}/*.svg
+            - rm -f {{.GATE_DIR}}/*.out
             - rm -rf build/
             - 'echo "clean: complete"'
 
