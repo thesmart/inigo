@@ -288,7 +288,15 @@ tasks:
                 rm -f "$badges_md"
             - npx prettier --write {{.README}}
 
-    gate:check:
+    gate:commit:
+        desc: Stage gate artifacts and README, then commit
+        deps: [dependencies:git]
+        cmds:
+            - git reset HEAD -- .
+            - git add {{.GATE_DIR}}/** {{.README}}
+            - git commit -m "Passed all gate checks"
+
+    gate:
         desc: Run full release gate checks
         cmds:
             - task: clean
@@ -296,7 +304,7 @@ tasks:
             - task: check:repo
             - task: check:coverage
             - task: gate:readme
-            - task: check:repo
+            - task: gate:commit
 
     # ---------------------------------------------------------------------------
     # Build
