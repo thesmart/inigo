@@ -293,7 +293,7 @@ tasks:
         deps: [dependencies:git]
         cmds:
             - git reset HEAD -- .
-            - git add {{.GATE_DIR}}/**/*.svg {{.GATE_DIR}}/**/*.txt {{.README}}
+            - git add {{.GATE_DIR}}/*.svg {{.GATE_DIR}}/*.txt {{.README}}
             - git commit -m "Passed all gate checks"
 
     gate:
