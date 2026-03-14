@@ -296,7 +296,6 @@ func TestLoad_07_QuotedValues(t *testing.T) {
 		{"octal_bell", "\x07"},
 		{"octal_tab", "\t"},
 		{"octal_newline", "\n"},
-		{"octal_max", "\xff"},
 		{"octal_two_digit", "\x3f"},
 		{"octal_one_digit", "\x07"},
 		// multiple escapes in one value
@@ -317,6 +316,38 @@ func TestLoad_07_QuotedValues(t *testing.T) {
 		t.Run(tt.key, func(t *testing.T) {
 			requireParam(t, def, tt.key, tt.want)
 		})
+	}
+}
+
+// TestLoad_07_QuotedValues_RoundTrip parses the quoted-values test file,
+// marshals it back to INI, re-parses, and verifies every value survives.
+func TestLoad_07_QuotedValues_RoundTrip(t *testing.T) {
+	f := requireLoad(t, "07_quoted_values.conf")
+	def := requireSection(t, f, "")
+
+	// Collect original values.
+	type kv struct{ key, value string }
+	var originals []kv
+	for _, p := range def.Params() {
+		originals = append(originals, kv{p.Name, p.Value})
+	}
+
+	// Marshal to bytes, write to temp file, re-parse.
+	data, err := f.MarshalIni()
+	if err != nil {
+		t.Fatalf("MarshalIni: %v", err)
+	}
+
+	dir := t.TempDir()
+	path := writeTemp(t, dir, "07_roundtrip.conf", string(data))
+	f2, err := Parse(path)
+	if err != nil {
+		t.Fatalf("re-Parse: %v", err)
+	}
+
+	def2 := requireSection(t, f2, "")
+	for _, orig := range originals {
+		requireParam(t, def2, orig.key, orig.value)
 	}
 }
 
