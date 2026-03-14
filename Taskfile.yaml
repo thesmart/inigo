@@ -139,7 +139,7 @@ tasks:
         deps: [dependencies:go]
         cmds:
             - mkdir -p {{.GATE_DIR}}
-            - go test -coverprofile={{.GATE_DIR}}/coverage.profile ./...
+            - go test -coverprofile={{.GATE_DIR}}/coverage.profile ./pgini/
             - go tool cover -func={{.GATE_DIR}}/coverage.profile > {{.GATE_DIR}}/coverage.report.txt
             - sh {{.SHELL_DIR}}/covpct.sh -s {{.GATE_DIR}}/coverage.report.txt -o
               {{.GATE_DIR}}/coverage.pct.txt

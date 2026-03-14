@@ -1,6 +1,6 @@
 # inigo
 
-<img align="right" src="./badges/inigo-logo.png" width="100" alt="inigo logo" />
+<img align="right" src="./gate/inigo-logo.png" width="100" alt="inigo logo" />
 
 Go package and CLI tool for INI configuration files.
 
@@ -9,10 +9,10 @@ Go package and CLI tool for INI configuration files.
 
 <!-- BADGES:START -->
 
-[![Go Reference](./badges/go-reference-badge.svg)](https://pkg.go.dev/github.com/thesmart/inigo)
-[![Coverage 98%](./badges/coverage-badge.svg)](https://github.com/thesmart/inigo)
-[![Go Report A+](./badges/go-report-badge.svg)](https://goreportcard.com/report/github.com/thesmart/inigo)
-[![License MIT](./badges/license-badge.svg)](./LICENSE)
+[![Go Reference](./gate/go-reference-badge.svg)](https://pkg.go.dev/github.com/thesmart/inigo)
+[![Coverage 98%](./gate/coverage-badge.svg)](https://github.com/thesmart/inigo)
+[![Go Report A+](./gate/go-report-badge.svg)](https://goreportcard.com/report/github.com/thesmart/inigo)
+[![License MIT](./gate/license-badge.svg)](./LICENSE)
 
 <!-- BADGES:END -->
 

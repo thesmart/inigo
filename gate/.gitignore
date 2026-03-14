@@ -1,2 +1,3 @@
 # Generated gate artifacts
-coverage.profile
+*.profile
+*.out
