@@ -747,6 +747,43 @@ func TestLoad_Errors_IncludePathControlChar(t *testing.T) {
 // Load — generic Load[T] convenience function
 // ---------------------------------------------------------------------------
 
+func TestLoadInto_09_Numbers(t *testing.T) {
+	type Numbers struct {
+		Decimal   int     `ini:"decimal"`
+		Zero      int     `ini:"zero"`
+		Negative  int     `ini:"negative"`
+		Large     int     `ini:"large"`
+		FloatSimp float64 `ini:"float_simple"`
+	}
+
+	// Pre-populate with values that should be overwritten.
+	cfg := &Numbers{Decimal: 999, Zero: 999, Negative: 999, Large: 999, FloatSimp: 999.0}
+
+	err := LoadInto(unitPath("09_numbers.conf"), "", cfg)
+	if err != nil {
+		t.Fatalf("LoadInto: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{"decimal", cfg.Decimal, 100},
+		{"zero", cfg.Zero, 0},
+		{"negative", cfg.Negative, -1},
+		{"large", cfg.Large, 9999999},
+		{"float_simple", cfg.FloatSimp, 1.5},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %v, want %v", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLoadGeneric_09_Numbers(t *testing.T) {
 	type Numbers struct {
 		Decimal    int     `ini:"decimal"`

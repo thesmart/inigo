@@ -31,6 +31,18 @@ func Load[T any](filePath string, section string) (*T, error) {
 	return &t, nil
 }
 
+// LoadInto parses the PGINI file at filePath and unmarshals the named section
+// into the struct pointed to by structPtr. structPtr must be a pointer to a
+// struct with `ini:"KEY"` field tags.
+// Use an empty string for section to read the default (unnamed) section.
+func LoadInto(filePath string, section string, structPtr any) error {
+	f, err := Parse(filePath)
+	if err != nil {
+		return err
+	}
+	return f.UnmarshalSection(section, structPtr)
+}
+
 // Parse parses the PGINI file at filePath (and any included files) and returns
 // a populated IniFile.
 func Parse(filePath string) (*IniFile, error) {
