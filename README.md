@@ -60,16 +60,15 @@ Check out more examples in the [User's Guide](./examples/users-guide.md).
 Inject parameters into any command:
 
 ```sh
-inigo env --filter PG pg.conf -- psql
+inigo env --section database --prefix PG pg.conf -- psql
 # psql receives: PGHOST=localhost PGPORT=5432 PGDBNAME=myapp ...
 inigo json --case=likeThis pg.conf | jq
 ```
 
 ```json
 {
-    "pgHost": "localhost",
-    "pgPort": "1337",
-    "pgUser": "postgres"
+    "host": "localhost",
+    "port": "1337"
 }
 ```
 

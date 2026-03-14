@@ -204,7 +204,7 @@ func TestJsonMissingSection(t *testing.T) {
 }
 
 func TestJsonCaseSnake(t *testing.T) {
-	ini := writeIni(t, "[mydb]\ndb-host = localhost\ndb-port = 5432\n")
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\ndb_port = 5432\n")
 	out, err := exec.Command(testBinary, "json", "--case", "snake", ini, "mydb").Output()
 	if err != nil {
 		t.Fatalf("json --case snake failed: %v", err)
@@ -233,8 +233,8 @@ func TestJsonCaseCamel(t *testing.T) {
 	}
 }
 
-func TestJsonCaseCamelFromKebab(t *testing.T) {
-	ini := writeIni(t, "[mydb]\ndb-host = localhost\n")
+func TestJsonCaseCamelFromUnderscore(t *testing.T) {
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
 	out, err := exec.Command(testBinary, "json", "--case", "camel", ini, "mydb").Output()
 	if err != nil {
 		t.Fatalf("json --case camel failed: %v", err)
@@ -278,7 +278,7 @@ func TestJsonCasePascal(t *testing.T) {
 }
 
 func TestJsonCaseExampleUpperSnake(t *testing.T) {
-	ini := writeIni(t, "[mydb]\ndb-host = localhost\n")
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
 	out, err := exec.Command(testBinary, "json", "--case", "UPPER_CASE", ini, "mydb").Output()
 	if err != nil {
 		t.Fatalf("json --case UPPER_CASE failed: %v", err)
@@ -342,7 +342,7 @@ func TestJsonCaseUp(t *testing.T) {
 }
 
 func TestJsonCaseExampleSnake(t *testing.T) {
-	ini := writeIni(t, "[mydb]\ndb-host = localhost\n")
+	ini := writeIni(t, "[mydb]\ndb_host = localhost\n")
 	out, err := exec.Command(testBinary, "json", "--case", "snake_case", ini, "mydb").Output()
 	if err != nil {
 		t.Fatalf("json --case snake_case failed: %v", err)

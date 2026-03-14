@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/spf13/cobra"
-	"github.com/thesmart/inigo/ini"
+	"github.com/thesmart/inigo/pgini"
 )
 
 var envPrefix string
@@ -58,12 +58,12 @@ func runEnv(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("missing command after --")
 	}
 
-	cfg, err := ini.Load(iniFile)
+	cfg, err := pgini.Parse(iniFile)
 	if err != nil {
 		return err
 	}
 
-	sec := cfg.Get(section)
+	sec := cfg.GetSection(section)
 	if sec == nil {
 		return fmt.Errorf("section %q not found in %s", section, iniFile)
 	}
@@ -113,14 +113,14 @@ func splitDashArgs(cmd *cobra.Command, args []string) (iniFile, section string, 
 	return iniFile, section, command, nil
 }
 
-func buildEnvVars(sec *ini.Section, prefix, filter string) []string {
+func buildEnvVars(sec *pgini.Section, prefix, filter string) []string {
 	var env []string
-	for name, val := range sec.Params() {
-		envName := strings.ToUpper(name)
+	for _, param := range sec.Params() {
+		envName := strings.ToUpper(param.Name)
 		if filter != "" && !strings.HasPrefix(envName, filter) {
 			continue
 		}
-		env = append(env, prefix+envName+"="+val)
+		env = append(env, prefix+envName+"="+param.Value)
 	}
 	return env
 }

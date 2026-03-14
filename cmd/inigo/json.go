@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stoewer/go-strcase"
-	"github.com/thesmart/inigo/ini"
+	"github.com/thesmart/inigo/pgini"
 )
 
 var jsonCase string
@@ -63,12 +63,12 @@ func runJSON(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cfg, err := ini.Load(iniFile)
+	cfg, err := pgini.Parse(iniFile)
 	if err != nil {
 		return err
 	}
 
-	sec := cfg.Get(section)
+	sec := cfg.GetSection(section)
 	if sec == nil {
 		return fmt.Errorf("section %q not found in %s", section, iniFile)
 	}
@@ -79,8 +79,8 @@ func runJSON(cmd *cobra.Command, args []string) error {
 	}
 
 	params := make(map[string]string)
-	for name, val := range sec.Params() {
-		params[convertKey(name)] = val
+	for _, param := range sec.Params() {
+		params[convertKey(param.Name)] = param.Value
 	}
 
 	jsonBytes, err := json.Marshal(params)
