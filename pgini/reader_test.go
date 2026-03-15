@@ -682,6 +682,11 @@ func TestLoad_Errors(t *testing.T) {
 			file:    "errors/double_quote_value.conf",
 			wantErr: "unexpected character",
 		},
+		{
+			name:    "19_double_quotes_rejected",
+			file:    "19_double_quotes_rejected.conf",
+			wantErr: "unexpected character",
+		},
 		// Include errors
 		{
 			name:    "include_no_quote",

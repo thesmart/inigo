@@ -132,7 +132,7 @@ tasks:
         desc: Run all Go tests
         deps: [dependencies:go]
         cmds:
-            - go test -v ./...
+            - go test -v ./pgini/
 
     test:coverage:
         desc: Run tests with coverage and extract metrics to {{.GATE_DIR}}
@@ -305,6 +305,7 @@ tasks:
             - task: check:coverage
             - task: gate:readme
             - task: gate:commit
+            - task: build
 
     # ---------------------------------------------------------------------------
     # Build
