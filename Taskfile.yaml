@@ -305,7 +305,7 @@ tasks:
             - task: check:coverage
             - task: gate:readme
             - task: gate:commit
-            - task: build
+            - task: build:all
 
     # ---------------------------------------------------------------------------
     # Build
@@ -327,7 +327,7 @@ tasks:
                 for platform in {{.PLATFORMS}}; do
                   os=$(echo "$platform" | cut -d/ -f1)
                   arch=$(echo "$platform" | cut -d/ -f2)
-                  output="build/${os}-${arch}"
+                  output="build/inigo-${os}-${arch}"
                   echo "building ${output}..."
                   GOOS=$os GOARCH=$arch go build -o "$output" ./cmd/inigo || exit 1
                 done
