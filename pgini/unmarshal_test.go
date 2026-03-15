@@ -753,6 +753,540 @@ func TestCallCustomUnmarshalValidation(t *testing.T) {
 	})
 }
 
+// ---------------------------------------------------------------------------
+// Unmarshal from conf files 01–13
+// ---------------------------------------------------------------------------
+
+// TestUnmarshal_01_Blank verifies that unmarshaling a blank file leaves all
+// fields at zero values.
+func TestUnmarshal_01_Blank(t *testing.T) {
+	type cfg struct {
+		Host string `ini:"host"`
+		Port int    `ini:"port"`
+	}
+	c, err := Load[cfg](unitPath("01_blank.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.Host != "" {
+		t.Errorf("Host = %q, want empty", c.Host)
+	}
+	if c.Port != 0 {
+		t.Errorf("Port = %d, want 0", c.Port)
+	}
+}
+
+// TestUnmarshal_02_Comments verifies that a comments-only file produces zero
+// values (no parameters).
+func TestUnmarshal_02_Comments(t *testing.T) {
+	type cfg struct {
+		Key string `ini:"key"`
+	}
+	c, err := Load[cfg](unitPath("02_comments.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.Key != "" {
+		t.Errorf("Key = %q, want empty", c.Key)
+	}
+}
+
+// TestUnmarshal_03_Sections verifies unmarshaling specific named sections.
+func TestUnmarshal_03_Sections(t *testing.T) {
+	type section struct {
+		Key string `ini:"key"`
+	}
+
+	tests := []struct {
+		section string
+		want    string
+	}{
+		{"basic", "one"},
+		{"upper", "two"},
+		{"mixed", "three"},
+		{"_private", "four"},
+		{"section_2_name", "five"},
+		{"x", "six"},
+		{"trailing", "seven"},
+		{"commented", "eight"},
+		{"semicommented", "nine"},
+		{"padded", "ten"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.section, func(t *testing.T) {
+			c, err := Load[section](unitPath("03_sections.conf"), tt.section)
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if c.Key != tt.want {
+				t.Errorf("Key = %q, want %q", c.Key, tt.want)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_04_Identifiers verifies that case-insensitive keys unmarshal
+// correctly into struct fields.
+func TestUnmarshal_04_Identifiers(t *testing.T) {
+	type cfg struct {
+		A               string `ini:"a"`
+		Z               string `ini:"z"`
+		Underscore      string `ini:"_"`
+		ABC             string `ini:"abc"`
+		Mixed           string `ini:"mixed"`
+		Leading         string `ini:"_leading"`
+		Double          string `ini:"__double"`
+		A1              string `ini:"a1"`
+		U0              string `ini:"_0"`
+		Long            string `ini:"long_identifier_name_with_many_parts"`
+		LettersDigits   string `ini:"abc123def456"`
+		MixedEverything string `ini:"a_b_c_1_2_3"`
+	}
+	c, err := Load[cfg](unitPath("04_identifiers.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	tests := []struct{ name, got, want string }{
+		{"a", c.A, "single_letter"},
+		{"z", c.Z, "uppercase_single"},
+		{"_", c.Underscore, "underscore_start"},
+		{"abc", c.ABC, "uppercase"},
+		{"mixed", c.Mixed, "mixed_case"},
+		{"_leading", c.Leading, "underscore_leading"},
+		{"__double", c.Double, "double_underscore"},
+		{"a1", c.A1, "letter_then_digit"},
+		{"_0", c.U0, "underscore_then_digit"},
+		{"long", c.Long, "long"},
+		{"abc123def456", c.LettersDigits, "letters_and_digits"},
+		{"a_b_c_1_2_3", c.MixedEverything, "mixed_everything"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_05_Separators verifies that = and : separators (and space-only)
+// all unmarshal identically.
+func TestUnmarshal_05_Separators(t *testing.T) {
+	type cfg struct {
+		Equals      string `ini:"equals"`
+		Colon       string `ini:"colon"`
+		SpaceOnly   string `ini:"space_only"`
+		EqualsNoSpc string `ini:"equals_no_space"`
+		ColonNoSpc  string `ini:"colon_no_space"`
+		ExtraSpace  string `ini:"extra_space"`
+		ExtraColon  string `ini:"extra_colon"`
+		TabAround   string `ini:"tab_around"`
+	}
+	c, err := Load[cfg](unitPath("05_separators.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	tests := []struct{ name, got, want string }{
+		{"equals", c.Equals, "value_equals"},
+		{"colon", c.Colon, "value_colon"},
+		{"space_only", c.SpaceOnly, "value_space"},
+		{"equals_no_space", c.EqualsNoSpc, "value_tight"},
+		{"colon_no_space", c.ColonNoSpc, "value_tight_colon"},
+		{"extra_space", c.ExtraSpace, "value_extra"},
+		{"extra_colon", c.ExtraColon, "value_extra_colon"},
+		{"tab_around", c.TabAround, "value_tab"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_06_UnquotedValues verifies unquoted safe-char values unmarshal
+// as strings.
+func TestUnmarshal_06_UnquotedValues(t *testing.T) {
+	type cfg struct {
+		Alpha    string `ini:"alpha"`
+		URLLike  string `ini:"url_like"`
+		IPAddr   string `ini:"ip_addr"`
+		Version  string `ini:"version"`
+		Negative string `ini:"negative"`
+		Signed   string `ini:"signed"`
+	}
+	c, err := Load[cfg](unitPath("06_unquoted_values.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	tests := []struct{ name, got, want string }{
+		{"alpha", c.Alpha, "abcdef"},
+		{"url_like", c.URLLike, "https://example.com:443/path"},
+		{"ip_addr", c.IPAddr, "192.168.1.1"},
+		{"version", c.Version, "v1.2.3-rc.1+build.42"},
+		{"negative", c.Negative, "-123"},
+		{"signed", c.Signed, "+456"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_07_QuotedValues verifies quoted values with escapes unmarshal
+// correctly as strings.
+func TestUnmarshal_07_QuotedValues(t *testing.T) {
+	type cfg struct {
+		Empty            string `ini:"empty"`
+		Simple           string `ini:"simple"`
+		EscapedBackslash string `ini:"escaped_backslash"`
+		EscapedN         string `ini:"escaped_n"`
+		DoubledQuote     string `ini:"doubled_quote"`
+		UTF8Content      string `ini:"utf8_content"`
+		UTF8Emoji        string `ini:"utf8_emoji"`
+		CommentChars     string `ini:"comment_chars"`
+	}
+	c, err := Load[cfg](unitPath("07_quoted_values.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	tests := []struct{ name, got, want string }{
+		{"empty", c.Empty, ""},
+		{"simple", c.Simple, "hello world"},
+		{"escaped_backslash", c.EscapedBackslash, "back\\slash"},
+		{"escaped_n", c.EscapedN, "new\nline"},
+		{"doubled_quote", c.DoubledQuote, "it's doubled"},
+		{"utf8_content", c.UTF8Content, "café résumé naïve"},
+		{"utf8_emoji", c.UTF8Emoji, "🌍🎉"},
+		{"comment_chars", c.CommentChars, "# not a comment ; also not"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_08_Booleans verifies that boolean string values unmarshal into
+// bool fields correctly.
+func TestUnmarshal_08_Booleans(t *testing.T) {
+	type cfg struct {
+		TrueLower  bool `ini:"true_lower"`
+		TrueUpper  bool `ini:"true_upper"`
+		TrueMixed  bool `ini:"true_mixed"`
+		FalseLower bool `ini:"false_lower"`
+		FalseUpper bool `ini:"false_upper"`
+		FalseMixed bool `ini:"false_mixed"`
+		OnLower    bool `ini:"on_lower"`
+		OnUpper    bool `ini:"on_upper"`
+		OffLower   bool `ini:"off_lower"`
+		OffUpper   bool `ini:"off_upper"`
+		YesLower   bool `ini:"yes_lower"`
+		YesUpper   bool `ini:"yes_upper"`
+		NoLower    bool `ini:"no_lower"`
+		NoUpper    bool `ini:"no_upper"`
+		One        bool `ini:"one"`
+		Zero       bool `ini:"zero"`
+		TLower     bool `ini:"t_lower"`
+		TUpper     bool `ini:"t_upper"`
+		FLower     bool `ini:"f_lower"`
+		FUpper     bool `ini:"f_upper"`
+		YLower     bool `ini:"y_lower"`
+		YUpper     bool `ini:"y_upper"`
+		NLower     bool `ini:"n_lower"`
+		NUpper     bool `ini:"n_upper"`
+	}
+	c, err := Load[cfg](unitPath("08_booleans.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	trueFields := []struct {
+		name string
+		got  bool
+	}{
+		{"true_lower", c.TrueLower},
+		{"true_upper", c.TrueUpper},
+		{"true_mixed", c.TrueMixed},
+		{"on_lower", c.OnLower},
+		{"on_upper", c.OnUpper},
+		{"yes_lower", c.YesLower},
+		{"yes_upper", c.YesUpper},
+		{"one", c.One},
+		{"t_lower", c.TLower},
+		{"t_upper", c.TUpper},
+		{"y_lower", c.YLower},
+		{"y_upper", c.YUpper},
+	}
+	for _, tt := range trueFields {
+		t.Run(tt.name, func(t *testing.T) {
+			if !tt.got {
+				t.Errorf("%s = false, want true", tt.name)
+			}
+		})
+	}
+
+	falseFields := []struct {
+		name string
+		got  bool
+	}{
+		{"false_lower", c.FalseLower},
+		{"false_upper", c.FalseUpper},
+		{"false_mixed", c.FalseMixed},
+		{"off_lower", c.OffLower},
+		{"off_upper", c.OffUpper},
+		{"no_lower", c.NoLower},
+		{"no_upper", c.NoUpper},
+		{"zero", c.Zero},
+		{"f_lower", c.FLower},
+		{"f_upper", c.FUpper},
+		{"n_lower", c.NLower},
+		{"n_upper", c.NUpper},
+	}
+	for _, tt := range falseFields {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got {
+				t.Errorf("%s = true, want false", tt.name)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_09_Numbers verifies numeric values unmarshal into typed fields.
+func TestUnmarshal_09_Numbers(t *testing.T) {
+	type cfg struct {
+		Decimal    int     `ini:"decimal"`
+		Zero       int     `ini:"zero"`
+		Negative   int     `ini:"negative"`
+		Positive   int     `ini:"positive"`
+		Large      int     `ini:"large"`
+		HexLower   int     `ini:"hex_lower"`
+		HexUpper   int     `ini:"hex_upper"`
+		HexLong    int64   `ini:"hex_long"`
+		FloatSimp  float64 `ini:"float_simple"`
+		FloatSmall float64 `ini:"float_small"`
+		FloatNoLd  float64 `ini:"float_no_lead"`
+		FloatTrail float64 `ini:"float_trail"`
+	}
+	c, err := Load[cfg](unitPath("09_numbers.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	intTests := []struct {
+		name string
+		got  any
+		want any
+	}{
+		{"decimal", c.Decimal, 100},
+		{"zero", c.Zero, 0},
+		{"negative", c.Negative, -1},
+		{"positive", c.Positive, 1},
+		{"large", c.Large, 9999999},
+		{"hex_lower", c.HexLower, 0xff},
+		{"hex_upper", c.HexUpper, 0xFF},
+		{"hex_long", c.HexLong, int64(0xDEADBEEF)},
+		{"float_simple", c.FloatSimp, 1.5},
+		{"float_small", c.FloatSmall, 0.001},
+		{"float_no_lead", c.FloatNoLd, 0.5},
+		{"float_trail", c.FloatTrail, 1.0},
+	}
+	for _, tt := range intTests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %v, want %v", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_10_EmptyValues verifies that missing/empty values unmarshal to
+// zero values for each type.
+func TestUnmarshal_10_EmptyValues(t *testing.T) {
+	type cfg struct {
+		NoValueNoSep   string `ini:"no_value_no_sep"`
+		NoValueEq      string `ini:"no_value_eq"`
+		NoValueColon   string `ini:"no_value_colon"`
+		NoValueEqSpace string `ini:"no_value_eq_space"`
+		NoValueComment string `ini:"no_value_comment"`
+		NoValueSemi    string `ini:"no_value_semi"`
+	}
+	c, err := Load[cfg](unitPath("10_empty_values.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	fields := []struct {
+		name string
+		got  string
+	}{
+		{"no_value_no_sep", c.NoValueNoSep},
+		{"no_value_eq", c.NoValueEq},
+		{"no_value_colon", c.NoValueColon},
+		{"no_value_eq_space", c.NoValueEqSpace},
+		{"no_value_comment", c.NoValueComment},
+		{"no_value_semi", c.NoValueSemi},
+	}
+	for _, tt := range fields {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != "" {
+				t.Errorf("%s = %q, want empty", tt.name, tt.got)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_11_Duplicates verifies that duplicate keys resolve to last-wins
+// when unmarshaled.
+func TestUnmarshal_11_Duplicates(t *testing.T) {
+	type defaultSection struct {
+		Key     string `ini:"key"`
+		Another string `ini:"another"`
+	}
+	type sectionA struct {
+		Dup   string `ini:"dup"`
+		Extra string `ini:"extra"`
+	}
+
+	f, err := Parse(unitPath("11_duplicates.conf"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+
+	var def defaultSection
+	if err := f.UnmarshalSection("", &def); err != nil {
+		t.Fatalf("UnmarshalSection default: %v", err)
+	}
+	if def.Key != "third" {
+		t.Errorf("Key = %q, want %q", def.Key, "third")
+	}
+	if def.Another != "two" {
+		t.Errorf("Another = %q, want %q", def.Another, "two")
+	}
+
+	var sa sectionA
+	if err := f.UnmarshalSection("section_a", &sa); err != nil {
+		t.Fatalf("UnmarshalSection section_a: %v", err)
+	}
+	if sa.Dup != "gamma" {
+		t.Errorf("Dup = %q, want %q", sa.Dup, "gamma")
+	}
+	if sa.Extra != "added" {
+		t.Errorf("Extra = %q, want %q", sa.Extra, "added")
+	}
+}
+
+// TestUnmarshal_12_Whitespace verifies that whitespace around keys, separators,
+// and values is properly trimmed when unmarshaled.
+func TestUnmarshal_12_Whitespace(t *testing.T) {
+	type cfg struct {
+		SpacedKey         string `ini:"spaced_key"`
+		TabbedKey         string `ini:"tabbed_key"`
+		MixedKey          string `ini:"mixed_key"`
+		PaddedEq          string `ini:"padded_eq"`
+		PaddedColon       string `ini:"padded_colon"`
+		TabsEq            string `ini:"tabs_eq"`
+		TrailingSpaces    string `ini:"trailing_spaces"`
+		TrailingTabs      string `ini:"trailing_tabs"`
+		TrailingAfterQuot string `ini:"trailing_after_quote"`
+	}
+	c, err := Load[cfg](unitPath("12_whitespace.conf"), "")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	tests := []struct{ name, got, want string }{
+		{"spaced_key", c.SpacedKey, "value"},
+		{"tabbed_key", c.TabbedKey, "value"},
+		{"mixed_key", c.MixedKey, "value"},
+		{"padded_eq", c.PaddedEq, "padded_value"},
+		{"padded_colon", c.PaddedColon, "padded_value_colon"},
+		{"tabs_eq", c.TabsEq, "tabbed_value"},
+		{"trailing_spaces", c.TrailingSpaces, "value"},
+		{"trailing_tabs", c.TrailingTabs, "value"},
+		{"trailing_after_quote", c.TrailingAfterQuot, "quoted"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestUnmarshal_13_TrailingComments verifies that trailing comments are stripped
+// and do not appear in unmarshaled values.
+func TestUnmarshal_13_TrailingComments(t *testing.T) {
+	type defaultCfg struct {
+		Key1 string `ini:"key1"`
+		Key2 string `ini:"key2"`
+		Key3 string `ini:"key3"`
+		Key4 string `ini:"key4"`
+		Key5 string `ini:"key5"`
+		Key6 string `ini:"key6"`
+	}
+	type commentedCfg struct {
+		Key7 string `ini:"key7"`
+		Key8 string `ini:"key8"`
+		Key9 string `ini:"key9"`
+	}
+
+	f, err := Parse(unitPath("13_trailing_comments.conf"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+
+	var def defaultCfg
+	if err := f.UnmarshalSection("", &def); err != nil {
+		t.Fatalf("UnmarshalSection default: %v", err)
+	}
+
+	defTests := []struct{ name, got, want string }{
+		{"key1", def.Key1, "value"},
+		{"key2", def.Key2, "value"},
+		{"key3", def.Key3, "quoted"},
+		{"key4", def.Key4, "quoted"},
+		{"key5", def.Key5, ""},
+		{"key6", def.Key6, ""},
+	}
+	for _, tt := range defTests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+
+	var commented commentedCfg
+	if err := f.UnmarshalSection("commented", &commented); err != nil {
+		t.Fatalf("UnmarshalSection commented: %v", err)
+	}
+
+	commentedTests := []struct{ name, got, want string }{
+		{"key7", commented.Key7, "value"},
+		{"key8", commented.Key8, "has # inside"},
+		{"key9", commented.Key9, "has ; inside"},
+	}
+	for _, tt := range commentedTests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
 // --- round-trip test ---
 
 func TestMarshalUnmarshalRoundTrip(t *testing.T) {

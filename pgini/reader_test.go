@@ -7,7 +7,7 @@ import (
 )
 
 // unitsDir is the base path for unit test data files.
-var unitsDir = filepath.Join("testdata", "reader")
+var unitsDir = filepath.Join("testdata", "conf")
 
 // unitPath returns the absolute path for a testdata/units file.
 func unitPath(name string) string {
@@ -417,6 +417,38 @@ func TestLoad_09_Numbers(t *testing.T) {
 	}
 }
 
+// TestLoad_09_Numbers_RoundTrip parses the numbers test file, marshals it
+// back to INI, re-parses, and verifies every value survives unchanged.
+func TestLoad_09_Numbers_RoundTrip(t *testing.T) {
+	f := requireLoad(t, "09_numbers.conf")
+	def := requireSection(t, f, "")
+
+	// Collect original values.
+	type kv struct{ key, value string }
+	var originals []kv
+	for _, p := range def.Params() {
+		originals = append(originals, kv{p.Name, p.Value})
+	}
+
+	// Marshal to bytes, write to temp file, re-parse.
+	data, err := f.MarshalIni()
+	if err != nil {
+		t.Fatalf("MarshalIni: %v", err)
+	}
+
+	dir := t.TempDir()
+	path := writeTemp(t, dir, "09_roundtrip.conf", string(data))
+	f2, err := Parse(path)
+	if err != nil {
+		t.Fatalf("re-Parse: %v", err)
+	}
+
+	def2 := requireSection(t, f2, "")
+	for _, orig := range originals {
+		requireParam(t, def2, orig.key, orig.value)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // 10 — empty / missing values
 // ---------------------------------------------------------------------------
@@ -683,8 +715,8 @@ func TestLoad_Errors(t *testing.T) {
 			wantErr: "unexpected character",
 		},
 		{
-			name:    "19_double_quotes_rejected",
-			file:    "19_double_quotes_rejected.conf",
+			name:    "double_quotes_rejected",
+			file:    "errors/double_quotes_rejected.conf",
 			wantErr: "unexpected character",
 		},
 		// Include errors
