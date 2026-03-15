@@ -271,6 +271,16 @@ func TestJsonCmd_NoArgs(t *testing.T) {
 	}
 }
 
+func TestJsonCmd_TooManyPositionalArgs(t *testing.T) {
+	ini := writeIni(t, "host = localhost\n")
+	cmd := newTestRootCmd()
+	cmd.SetArgs([]string{"json", ini, "section", "extra"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for too many positional args")
+	}
+}
+
 // keys returns the keys of a map for error messages.
 func keys(m map[string]string) []string {
 	var ks []string

@@ -1,4 +1,5 @@
 # Generated gate artifacts
 *.profile
 *.out
+*.html
 VERSION.tmp

@@ -899,3 +899,78 @@ func TestLoadGeneric_09_Numbers(t *testing.T) {
 		})
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Parse — empty file (zero bytes)
+// ---------------------------------------------------------------------------
+
+func TestParse_EmptyFile(t *testing.T) {
+	dir := t.TempDir()
+	path := writeTemp(t, dir, "empty.conf", "")
+	f, err := Parse(path)
+	if err != nil {
+		t.Fatalf("Parse empty file: %v", err)
+	}
+	requireSectionCount(t, f, 1)
+	def := requireSection(t, f, "")
+	requireParamCount(t, def, 0)
+}
+
+// ---------------------------------------------------------------------------
+// Parse — nonexistent file
+// ---------------------------------------------------------------------------
+
+func TestParse_NonexistentFile(t *testing.T) {
+	_, err := Parse("/nonexistent/path/to/file.conf")
+	if err == nil {
+		t.Fatal("expected error for nonexistent file")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Load — error paths
+// ---------------------------------------------------------------------------
+
+func TestLoad_Error_BadFile(t *testing.T) {
+	type cfg struct {
+		Host string `ini:"host"`
+	}
+	_, err := Load[cfg]("/nonexistent/path/to/file.conf", "")
+	if err == nil {
+		t.Fatal("expected error for nonexistent file")
+	}
+}
+
+func TestLoad_Error_BadSection(t *testing.T) {
+	type cfg struct {
+		Host string `ini:"host"`
+	}
+	_, err := Load[cfg](unitPath("01_blank.conf"), "nonexistent")
+	if err == nil {
+		t.Fatal("expected error for nonexistent section")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// LoadInto — error paths
+// ---------------------------------------------------------------------------
+
+func TestLoadInto_Error_BadFile(t *testing.T) {
+	type cfg struct {
+		Host string `ini:"host"`
+	}
+	err := LoadInto("/nonexistent/path/to/file.conf", "", &cfg{})
+	if err == nil {
+		t.Fatal("expected error for nonexistent file")
+	}
+}
+
+func TestLoadInto_Error_BadSection(t *testing.T) {
+	type cfg struct {
+		Host string `ini:"host"`
+	}
+	err := LoadInto(unitPath("01_blank.conf"), "nonexistent", &cfg{})
+	if err == nil {
+		t.Fatal("expected error for nonexistent section")
+	}
+}

@@ -210,6 +210,16 @@ func TestEnvCmd_NoArgs(t *testing.T) {
 	}
 }
 
+func TestEnvCmd_TooManyPositionalArgs(t *testing.T) {
+	ini := writeIni(t, "host = localhost\n")
+	cmd := newTestRootCmd()
+	cmd.SetArgs([]string{"env", ini, "section", "extra", "--", "echo"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for too many positional args")
+	}
+}
+
 // newTestRootCmd creates a fresh root command tree for in-process testing.
 // Each test needs its own instance to avoid shared state between tests.
 func newTestRootCmd() *cobra.Command {
