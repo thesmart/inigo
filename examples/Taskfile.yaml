@@ -1,0 +1,30 @@
+version: '3'
+
+vars:
+    UP1_SHELL_DIR: ../shell
+
+tasks:
+    default:
+        desc: Run all examples
+        cmds:
+            - sh {{.UP1_SHELL_DIR}}/example.sh --all
+
+    '01':
+        desc: 'Run example: load struct'
+        cmds:
+            - sh {{.UP1_SHELL_DIR}}/example.sh 01
+
+    '02':
+        desc: 'Run example: parse and query'
+        cmds:
+            - sh {{.UP1_SHELL_DIR}}/example.sh 02
+
+    '03':
+        desc: 'Run example: marshal struct'
+        cmds:
+            - sh {{.UP1_SHELL_DIR}}/example.sh 03
+
+    '04':
+        desc: 'Run example: custom marshal'
+        cmds:
+            - sh {{.UP1_SHELL_DIR}}/example.sh 04

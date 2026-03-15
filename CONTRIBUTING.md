@@ -2,22 +2,43 @@
 
 ## Dev Environment
 
-- Go 1.24+
-- [Deno](https://deno.land/) (for markdown/JSON formatting)
+- Go 1.25+
+- [Task](https://taskfile.dev/) (task runner, installed via `go tool` directive)
+
+## Getting Started
 
 ```sh
 git clone git@github.com:thesmart/inigo.git
 cd inigo
-make check
+# validate you have all dev time dependencies
+task dependencies
+task build
+./build/inigo --help
 ```
 
-## Make Targets
+## Tasks
 
-| Command                                 | Description                                         |
-| --------------------------------------- | --------------------------------------------------- |
-| `make check`                            | Run `go fmt`, `go vet`, and tests                   |
-| `make gate`                             | Run checks + coverage + badges + README update      |
-| `make gate DRY_RUN=1`                   | Dry-run gate (temp dir artifacts, README untouched) |
-| `make release VERSION=v0.1.0`           | Run gate + tag + push + pkg.go.dev indexing         |
-| `make release VERSION=v0.1.0 DRY_RUN=1` | Dry-run release (prints actions only)               |
-| `make clean`                            | Remove generated badge SVGs                         |
+Everything you need to run as a developer is provided by `task` in the `Taskfile.yaml`.
+
+```sh
+task --list
+```
+
+If you need to modify or understanding the Task system, read
+[`reference/taskfile-conventions.md`](./reference/taskfile-conventions.md).
+
+## Go Conventions
+
+- Always implement code that follows modern Go conventions in 2025 as of v1.25
+- Always consider using the [standard library](https://pkg.go.dev/std) first
+- Consider popular, well tested packages w/ low dependencies via [pkg.go.dev](https://pkg.go.dev/)
+- Prefer direct GitHub imports (e.g., `github.com/user/repo`) over legacy redirect services like
+  `gopkg.in`. Use whatever path the module declares in its `go.mod`.
+- Within a `.go` file, keep a struct and its code together and ordered:
+    - struct definition
+        1.  struct's constructor(s)
+        2.  struct's method(s)
+        3.  methods implementing built-in interfaces: `error`, `fmt.Stringer`, `fmt.GoStringer`,
+            `sort.Interface`, `io.Reader` / `io.Writer`, marshalers / unmarshalers, `io.Closer`
+- Always nil-check pointer and interface fields before dereferencing, even if current constructors
+  initialize them. The type system is the contract.

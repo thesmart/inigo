@@ -1,5 +1,5 @@
-*.DS_Store
-Thumbs.db
+# Generated gate artifacts
 *.profile
-*.lh
-*.env
+*.out
+*.html
+VERSION.tmp

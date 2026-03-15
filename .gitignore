@@ -1,6 +1,12 @@
+# Generic
 *.DS_Store
 Thumbs.db
 *.profile
 *.lh
 *.env
+
+# Go
 build
+vendor
+*.out
+*.profile

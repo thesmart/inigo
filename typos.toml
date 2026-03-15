@@ -1,0 +1,8 @@
+[default]
+
+[default.extend-words]
+tru = "tru"
+BRE = "BRE"
+
+[files]
+extend-exclude = ["vendor/", "go.mod", "go.sum"]
