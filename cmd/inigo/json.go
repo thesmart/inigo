@@ -54,7 +54,6 @@ the INIGO_JSON environment variable.`,
 func init() {
 	jsonCmd.Flags().StringVarP(&jsonCase, "case", "c", "",
 		"convert JSON key casing by name or example (e.g. snake_case, camelCase, UPPER_CASE, kebab-case, PascalCase)")
-
 }
 
 func runJSON(cmd *cobra.Command, args []string) error {
@@ -89,7 +88,7 @@ func runJSON(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(command) == 0 {
-		fmt.Println(string(jsonBytes))
+		fmt.Fprintln(cmd.OutOrStdout(), string(jsonBytes))
 		return nil
 	}
 

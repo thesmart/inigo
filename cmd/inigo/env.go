@@ -11,9 +11,6 @@ import (
 	"github.com/thesmart/inigo/pgini"
 )
 
-var envPrefix string
-var envFilter string
-
 var envCmd = &cobra.Command{
 	Use:   "env [flags] <ini-file> [section] -- <command> [args...]",
 	Short: "Load INI params as env vars and exec a command",
@@ -27,25 +24,11 @@ If no section is given, the default (unnamed) section is used.`,
   # Use a named section from pg_service.conf
   inigo env pg_service.conf mydb -- psql
 
-  # Filter to only PG* keys
-  inigo env --filter PG .env -- psql
-
-  # Map generic names to PG-prefixed env vars
-  inigo env --prefix PG pg_service.conf mydb -- psql
-
-  # Combine filter and prefix
-  inigo env --filter DB --prefix MY .env -- ./myapp
-
   # Use in a shell script
   #!/bin/sh
   exec inigo env /etc/myapp.conf -- ./start-server`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runEnv,
-}
-
-func init() {
-	envCmd.Flags().StringVarP(&envPrefix, "prefix", "p", "", "prepend PREFIX to env var names (uppercased)")
-	envCmd.Flags().StringVarP(&envFilter, "filter", "f", "", "only include params whose uppercased name starts with FILTER")
 }
 
 func runEnv(cmd *cobra.Command, args []string) error {
@@ -68,7 +51,7 @@ func runEnv(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("section %q not found in %s", section, iniFile)
 	}
 
-	envVars := buildEnvVars(sec, strings.ToUpper(envPrefix), strings.ToUpper(envFilter))
+	envVars := buildEnvVars(sec)
 	env := mergeEnv(os.Environ(), envVars)
 
 	binary, err := exec.LookPath(command[0])
@@ -85,14 +68,13 @@ func runEnv(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// splitDashArgs uses Cobra's ArgsLenAtDash to split args into positional (ini-file, section)
-// and command (after --).
+// splitDashArgs uses Cobra's ArgsLenAtDash to split args into positional
+// (ini-file, optional section) and command (after --).
 func splitDashArgs(cmd *cobra.Command, args []string) (iniFile, section string, command []string, err error) {
 	dashAt := cmd.ArgsLenAtDash()
 
 	var positional []string
 	if dashAt < 0 {
-		// No "--" found
 		positional = args
 	} else {
 		positional = args[:dashAt]
@@ -102,7 +84,6 @@ func splitDashArgs(cmd *cobra.Command, args []string) (iniFile, section string, 
 	switch len(positional) {
 	case 1:
 		iniFile = positional[0]
-		section = ""
 	case 2:
 		iniFile = positional[0]
 		section = positional[1]
@@ -113,14 +94,11 @@ func splitDashArgs(cmd *cobra.Command, args []string) (iniFile, section string, 
 	return iniFile, section, command, nil
 }
 
-func buildEnvVars(sec *pgini.Section, prefix, filter string) []string {
+func buildEnvVars(sec *pgini.Section) []string {
 	var env []string
 	for _, param := range sec.Params() {
 		envName := strings.ToUpper(param.Name)
-		if filter != "" && !strings.HasPrefix(envName, filter) {
-			continue
-		}
-		env = append(env, prefix+envName+"="+param.Value)
+		env = append(env, envName+"="+param.Value)
 	}
 	return env
 }
