@@ -348,6 +348,27 @@ tasks:
             - task: build:all
 
     # ---------------------------------------------------------------------------
+    # Release
+    # ---------------------------------------------------------------------------
+
+    release:
+        desc: Publish a GitHub release with cross-compiled binaries
+        deps: [dependencies:gh]
+        vars:
+            VERSION:
+                sh: cat VERSION
+        cmds:
+            - task: gate
+            - task: gate:version
+            - |
+                tag="v{{.VERSION}}"
+                echo "creating GitHub release ${tag}..."
+                gh release create "$tag" build/inigo-* \
+                  --title "$tag" \
+                  --generate-notes
+                echo "release: ${tag} published"
+
+    # ---------------------------------------------------------------------------
     # Build
     # ---------------------------------------------------------------------------
 
@@ -432,6 +453,9 @@ tasks:
                 echo "  task example:04           Run example: custom marshal"
                 echo ""
                 echo "  (examples are defined in examples/Taskfile.yaml)"
+                echo ""
+                echo "Release:"
+                echo "  task release              Publish a GitHub release with binaries"
                 echo ""
                 echo "Build:"
                 echo "  task build                Build the inigo CLI binary"
