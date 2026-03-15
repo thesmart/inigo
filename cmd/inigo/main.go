@@ -20,9 +20,6 @@ own apps — without needing parsing in those apps.`,
   # Dump config as JSON for use in a shell script
   inigo json config.ini mydb | jq .
 
-  # Pass filtered env vars to a Docker container
-  inigo env --filter PG .env -- docker run --env-file /dev/stdin myimage
-
   # Use in a shell script
   #!/bin/sh
   exec inigo env /etc/myapp.conf -- ./myapp`,

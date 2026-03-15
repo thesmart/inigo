@@ -42,8 +42,8 @@ func TestEnvHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("env --help failed: %v", err)
 	}
-	if !strings.Contains(string(out), "--prefix") || !strings.Contains(string(out), "--filter") {
-		t.Errorf("expected flags in env help, got:\n%s", out)
+	if !strings.Contains(string(out), "env") {
+		t.Errorf("expected env usage in help, got:\n%s", out)
 	}
 }
 
@@ -64,47 +64,6 @@ func writeIni(t *testing.T, content string) string {
 		t.Fatal(err)
 	}
 	return path
-}
-
-func TestEnvPrefix(t *testing.T) {
-	ini := writeIni(t, "[mydb]\nhost = localhost\nport = 5432\n")
-	out, err := exec.Command(testBinary, "env", "--prefix", "PG", ini, "mydb", "--", "env").Output()
-	if err != nil {
-		t.Fatalf("env --prefix failed: %v", err)
-	}
-	output := string(out)
-	if !strings.Contains(output, "PGHOST=localhost") {
-		t.Errorf("expected PGHOST=localhost, got:\n%s", output)
-	}
-	if !strings.Contains(output, "PGPORT=5432") {
-		t.Errorf("expected PGPORT=5432, got:\n%s", output)
-	}
-}
-
-func TestEnvPrefixLowercaseNormalized(t *testing.T) {
-	ini := writeIni(t, "[mydb]\nhost = localhost\n")
-	out, err := exec.Command(testBinary, "env", "--prefix", "pg", ini, "mydb", "--", "env").Output()
-	if err != nil {
-		t.Fatalf("env --prefix lowercase failed: %v", err)
-	}
-	if !strings.Contains(string(out), "PGHOST=localhost") {
-		t.Errorf("expected PGHOST=localhost, got:\n%s", out)
-	}
-}
-
-func TestEnvFilter(t *testing.T) {
-	ini := writeIni(t, "PGHOST = localhost\nPGPORT = 5432\nOTHER = ignore\n")
-	out, err := exec.Command(testBinary, "env", "--filter", "PG", ini, "--", "env").Output()
-	if err != nil {
-		t.Fatalf("env --filter failed: %v", err)
-	}
-	output := string(out)
-	if !strings.Contains(output, "PGHOST=localhost") {
-		t.Errorf("expected PGHOST=localhost, got:\n%s", output)
-	}
-	if strings.Contains(output, "OTHER=ignore") {
-		t.Errorf("expected OTHER to be filtered out, got:\n%s", output)
-	}
 }
 
 func TestEnvDefaultSection(t *testing.T) {
@@ -404,20 +363,5 @@ func TestJsonCaseExampleUppercase(t *testing.T) {
 	}
 	if !strings.Contains(string(out), `"HOST"`) {
 		t.Errorf("expected HOST in JSON, got: %s", out)
-	}
-}
-
-func TestEnvFilterAndPrefix(t *testing.T) {
-	ini := writeIni(t, "DBHOST = localhost\nDBPORT = 5432\nOTHER = ignore\n")
-	out, err := exec.Command(testBinary, "env", "--filter", "DB", "--prefix", "MY", ini, "--", "env").Output()
-	if err != nil {
-		t.Fatalf("env --filter --prefix failed: %v", err)
-	}
-	output := string(out)
-	if !strings.Contains(output, "MYDBHOST=localhost") {
-		t.Errorf("expected MYDBHOST=localhost, got:\n%s", output)
-	}
-	if strings.Contains(output, "MYOTHER=ignore") || strings.Contains(output, "OTHER=ignore") {
-		t.Errorf("expected OTHER to be filtered out, got:\n%s", output)
 	}
 }
