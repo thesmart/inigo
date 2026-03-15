@@ -298,6 +298,44 @@ tasks:
             - git add {{.GATE_DIR}}/*.svg {{.GATE_DIR}}/*.txt {{.README}}
             - git commit -m "Passed all gate checks"
 
+    gate:version:
+        desc: Verify that the last release on github matches VERSION file
+        deps: [dependencies:gh]
+        vars:
+            RELEASE_VERSION:
+                sh: gh release view --json tagName -q '.tagName' | sed 's/^v//'
+            FILE_VERSION:
+                sh: cat VERSION
+        cmds:
+            - |
+                result=$(sh shell/semver.sh compare "{{.FILE_VERSION}}" "{{.RELEASE_VERSION}}")
+                if [ "$result" != "1" ]; then
+                    echo "VERSION file contains {{.FILE_VERSION}}, but must be ahead of latest GitHub release {{.RELEASE_VERSION}}" >&2
+                    exit 1
+                fi
+                echo "VERSION OK: {{.FILE_VERSION}} > {{.RELEASE_VERSION}}"
+
+    gate:version:major:
+        desc: Bump the VERSION file by a major version (i.e. breaking change)
+        cmds:
+            - sh shell/semver.sh bump major "$(cat VERSION)" > ./gate/VERSION.tmp
+            - mv ./gate/VERSION.tmp ./VERSION
+            - sh -c 'echo "New VERSION $(cat VERSION)"'
+
+    gate:version:minor:
+        desc: Bump the VERSION file by a minor version (i.e. feature release)
+        cmds:
+            - sh shell/semver.sh bump minor "$(cat VERSION)" > ./gate/VERSION.tmp
+            - mv ./gate/VERSION.tmp ./VERSION
+            - echo "New VERSION $(cat VERSION)"
+
+    gate:version:patch:
+        desc: Bump the VERSION file by a patch version (i.e. bug fix release)
+        cmds:
+            - sh shell/semver.sh bump patch "$(cat VERSION)" > ./gate/VERSION.tmp
+            - mv ./gate/VERSION.tmp ./VERSION
+            - echo "New VERSION $(cat VERSION)"
+
     gate:
         desc: Run full release gate checks
         cmds:
