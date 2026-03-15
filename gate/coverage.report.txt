@@ -1,3 +1,13 @@
+github.com/thesmart/inigo/cmd/inigo/env.go:34:		runEnv			47.6%
+github.com/thesmart/inigo/cmd/inigo/env.go:73:		splitDashArgs		100.0%
+github.com/thesmart/inigo/cmd/inigo/env.go:97:		buildEnvVars		100.0%
+github.com/thesmart/inigo/cmd/inigo/env.go:106:		mergeEnv		100.0%
+github.com/thesmart/inigo/cmd/inigo/json.go:54:		init			100.0%
+github.com/thesmart/inigo/cmd/inigo/json.go:59:		runJSON			63.3%
+github.com/thesmart/inigo/cmd/inigo/json.go:115:	keyCaseFunc		100.0%
+github.com/thesmart/inigo/cmd/inigo/json.go:146:	detectCaseExample	100.0%
+github.com/thesmart/inigo/cmd/inigo/main.go:30:		init			100.0%
+github.com/thesmart/inigo/cmd/inigo/main.go:36:		main			0.0%
 github.com/thesmart/inigo/pgini/cursors.go:39:		NewRootCursor		83.3%
 github.com/thesmart/inigo/pgini/cursors.go:73:		AddInclude		93.3%
 github.com/thesmart/inigo/pgini/cursors.go:102:		NextInclude		100.0%
@@ -62,4 +72,4 @@ github.com/thesmart/inigo/pgini/unmarshal.go:230:	parseUint		100.0%
 github.com/thesmart/inigo/pgini/unmarshal.go:253:	parseFloat		100.0%
 github.com/thesmart/inigo/pgini/unmarshal.go:262:	intInBounds		100.0%
 github.com/thesmart/inigo/pgini/unmarshal.go:278:	uintInBounds		100.0%
-total:							(statements)		96.3%
+total:							(statements)		93.3%

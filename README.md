@@ -10,7 +10,7 @@ Go package and CLI tool for INI configuration files.
 <!-- BADGES:START -->
 
 [![Go Reference](./gate/go-reference-badge.svg)](https://pkg.go.dev/github.com/thesmart/inigo)
-[![Coverage 96%](./gate/coverage-badge.svg)](https://github.com/thesmart/inigo)
+[![Coverage 93%](./gate/coverage-badge.svg)](https://github.com/thesmart/inigo)
 [![Go Report A+](./gate/go-report-badge.svg)](https://goreportcard.com/report/github.com/thesmart/inigo)
 [![License MIT](./gate/license-badge.svg)](./LICENSE)
 
